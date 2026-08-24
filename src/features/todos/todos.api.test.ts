@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { ZodError } from 'zod';
 
 // The fake server keeps its rows in module state, so each case needs a fresh module.
 function freshApi(): Promise<typeof import('./todos.api')> {
@@ -41,6 +42,20 @@ describe('todos.api', () => {
     expect(todos[0]?.id).toBe('4');
   });
 
+  // The schema runs before the row is committed, so a rejected add leaves nothing behind: the
+  // list is untouched and the id it would have taken is still the next one out.
+  it('rejects an invalid add without touching the list or the next id', async () => {
+    const { addTodo, fetchTodos } = await freshApi();
+
+    await expect(
+      // @ts-expect-error a caller reaching this at runtime can send a priority off the enum
+      addTodo({ title: 'Ship it', priority: 'urgent' }),
+    ).rejects.toBeInstanceOf(ZodError);
+
+    expect((await fetchTodos()).map((todo) => todo.id)).toEqual(['1', '2', '3']);
+    expect((await addTodo({ title: 'Ship it', priority: 'high' })).id).toBe('4');
+  });
+
   it('toggles a todo in place', async () => {
     const { fetchTodos, setTodoDone } = await freshApi();
 
@@ -50,6 +65,17 @@ describe('todos.api', () => {
     expect(updated.done).toBe(true);
     expect(todos.find((todo) => todo.id === '1')?.done).toBe(true);
     expect(todos).toHaveLength(3);
+  });
+
+  it('rejects an invalid toggle and leaves the row as it was', async () => {
+    const { fetchTodos, setTodoDone } = await freshApi();
+
+    await expect(
+      // @ts-expect-error a caller reaching this at runtime can send a non-boolean done
+      setTodoDone({ id: '1', done: 'yes' }),
+    ).rejects.toBeInstanceOf(ZodError);
+
+    expect((await fetchTodos()).find((todo) => todo.id === '1')?.done).toBe(false);
   });
 
   it('rejects a toggle for an id the server does not have', async () => {

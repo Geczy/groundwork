@@ -60,11 +60,19 @@ export async function fetchTodo(id: string): Promise<Todo> {
   return todoSchema.parse(found);
 }
 
+// Parsing comes before the row is committed, not after: a row that fails the schema must not
+// reach the list or consume an id on its way to throwing.
 export async function addTodo(input: AddTodoInput): Promise<Todo> {
   await delay(300);
-  const added: Todo = { id: String(nextId++), ...input, done: false, addedAt: Date.now() };
+  const added = todoSchema.parse({
+    id: String(nextId),
+    ...input,
+    done: false,
+    addedAt: Date.now(),
+  });
+  nextId += 1;
   todos = [added, ...todos];
-  return todoSchema.parse(added);
+  return added;
 }
 
 export async function setTodoDone({ id, done }: SetTodoDoneInput): Promise<Todo> {
@@ -72,9 +80,9 @@ export async function setTodoDone({ id, done }: SetTodoDoneInput): Promise<Todo>
   const current = todos.find((todo) => todo.id === id);
   if (current === undefined) throw new Error(`No todo with id ${id}.`);
 
-  const updated: Todo = { ...current, done };
+  const updated = todoSchema.parse({ ...current, done });
   todos = todos.map((todo) => (todo.id === id ? updated : todo));
-  return todoSchema.parse(updated);
+  return updated;
 }
 
 export async function removeTodo(id: string): Promise<{ id: string }> {

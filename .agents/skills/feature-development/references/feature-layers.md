@@ -48,6 +48,12 @@ export const newTodoPriorityAtom = atomWithStorage<TodoPriority>(
 );
 ```
 
+Validate a persisted value on the way in, on both paths storage reaches the atom: the initial read
+and every subscription update. Storage is shared with other tabs and with older versions of the app,
+so an unvalidated read puts an arbitrary value into typed state. Fall back to the initial value and
+leave the stored string alone, and drop an invalid cross-tab write rather than falling back over a
+choice this tab already made.
+
 ## `<feature>.api.ts`: transport
 
 Keep fetch calls and their transport-facing types here, without React, Jotai, or React Query. Parse
@@ -66,6 +72,10 @@ export async function addTodo(input: AddTodoInput): Promise<Todo> {
 ```
 
 Use a named error when a route must distinguish a missing record from a transport failure.
+
+An in-memory stand-in for a server owns its rows, so it validates a constructed row before it
+commits one: parse first, then assign the id, prepend, or replace. Parsing afterwards leaves a
+rejected row in the list and burns the id it took.
 
 ## `<feature>.queries.ts`: server state
 
