@@ -49,6 +49,8 @@ export default defineConfig({
       // Generated, vendored, or wiring that only a real browser exercises.
       exclude: [
         'src/routeTree.gen.ts',
+        'src/lib/supabase/database-generated.types.ts',
+        'src/lib/supabase/database-schema.generated.ts',
         'src/components/ui/**',
         'src/main.tsx',
         'src/test/**',

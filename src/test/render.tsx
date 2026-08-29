@@ -15,23 +15,23 @@ type Providers = { store?: RuntimeStore; queryClient?: QueryClient | undefined }
 
 type Options = Omit<RenderOptions, 'wrapper'> & Providers & { path?: string };
 
-type Rendered = RenderResult & AppRuntime & { mutationErrors: unknown[] };
+type Rendered = RenderResult & AppRuntime & { mutationErrors: Error[] };
 
 function createTestRuntime(path: string, providers: Providers): RenderedRuntime {
-  const mutationErrors: unknown[] = [];
+  const mutationErrors: Error[] = [];
   const runtime = createAppRuntime({
     history: createMemoryHistory({ initialEntries: [path] }),
     mutationErrorReporter: (error) => {
       mutationErrors.push(error);
     },
     queryRetry: false,
-    ...(providers.queryClient === undefined ? {} : { queryClient: providers.queryClient }),
-    ...(providers.store === undefined ? {} : { store: providers.store }),
+    queryClient: providers.queryClient,
+    store: providers.store,
   });
   return { mutationErrors, runtime };
 }
 
-type RenderedRuntime = { mutationErrors: unknown[]; runtime: AppRuntime };
+type RenderedRuntime = { mutationErrors: Error[]; runtime: AppRuntime };
 
 /**
  * Renders `ui` in the same provider stack as src/main.tsx, over a store, a QueryClient and a
@@ -39,15 +39,15 @@ type RenderedRuntime = { mutationErrors: unknown[]; runtime: AppRuntime };
  * and pass it in:
  *
  *     const store = createStore();
- *     store.set(newTodoPriorityAtom, 'high');
- *     renderWithProviders(<PriorityPicker />, { store });
+ *     store.set(preferencesAtom, { density: 'compact' });
+ *     renderWithProviders(<SettingsPanel />, { store });
  *
  * State the URL owns is not seeded here: it reaches a component as a prop, so a test passes it
  * directly. `path` only sets where the router thinks it is, for components that read the location.
  */
 export function renderWithProviders(
   ui: ReactElement,
-  { store = createStore(), queryClient, path = '/todos', ...options }: Options = {},
+  { store = createStore(), queryClient, path = '/', ...options }: Options = {},
 ): Rendered {
   const { mutationErrors, runtime } = createTestRuntime(path, { store, queryClient });
 
@@ -64,8 +64,8 @@ export function renderWithProviders(
  * Everything else should name a component and use `renderWithProviders` above, which is faster
  * and says what it is testing.
  *
- *     const { router } = renderRoute('/todos?filter=done');
- *     expect(router.state.location.searchStr).toBe('?filter=done');
+ *     const { router } = renderRoute('/settings?tab=profile');
+ *     expect(router.state.location.searchStr).toBe('?tab=profile');
  */
 export function renderRoute(
   path: string,

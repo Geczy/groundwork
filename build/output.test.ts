@@ -4,7 +4,7 @@ import { brotliDecompressSync } from 'node:zlib';
 import sharp, { type Sharp } from 'sharp';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { build as viteBuild } from 'vite';
-import { output } from './output.ts';
+import { createOutputLifecycle, output } from './output.ts';
 import { distDir, put, recorder, start, useColor } from './test/harness.ts';
 
 beforeEach(() => {
@@ -43,7 +43,7 @@ const SVG = `<?xml version="1.0" encoding="UTF-8"?>
 
 async function run(dir: string): Promise<string> {
   const log = recorder();
-  const hooks = start(output(), dir, log);
+  const hooks = start(createOutputLifecycle(), dir, log);
   await hooks.writeBundle();
   await hooks.closeBundle();
   return log.lines.join('\n');

@@ -7,15 +7,14 @@ description: Initialize a real project from this starter or maintain starter-onl
 
 Use the matching mode only:
 
-- **Initialize a project** to remove the worked example and replace starter identity and defaults.
+- **Initialize a project** to replace starter identity, metadata and defaults.
 - **Maintain starter plumbing** to change hooks, CI, toolchain pins, Renovate, or agent-skill
   installation. Do not perform project initialization as part of a plumbing-only task.
 
 ## Starting a new project
 
-1. Delete `src/features/todos/` and `src/routes/todos/`, and point `src/routes/index.tsx` at your
-   own page instead of redirecting to `/todos`. The feature is a worked example, not a dependency;
-   nothing else imports it.
+1. Replace the neutral starter surface in `src/routes/index.tsx` with the first real route once the
+   product domain is known.
 2. In `index.html`, replace the `https://example.com/` placeholders on `og:url` and `og:image`
    with real absolute URLs. Scrapers discard relative OG URLs, and an empty `content=""` is
    worse than an absent tag.
@@ -24,7 +23,9 @@ Use the matching mode only:
 4. Rewrite `README.md`. Replace `public/icon.svg` with your own mark, and add real
    `favicon.ico` and `apple-touch-icon.png` beside it.
 5. Add each config value to `envSchema` in `src/lib/env.ts` **and** to `.env.example`.
-6. Install the Renovate GitHub App if you want `renovate.json` to do anything; until then it is
+6. Run `bun run supabase:configure -- <app_schema>` before connecting a database or generating
+   real types. Do not rename the schema after migrations have reached a shared database.
+7. Install the Renovate GitHub App if you want `renovate.json` to do anything; until then it is
    inert. Check `.bun-version` matches the Bun you actually run.
 
 ## Git hooks

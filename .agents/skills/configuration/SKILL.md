@@ -22,3 +22,6 @@ build time, so anything that must change after deployment needs a runtime mechan
   its call site.
 - Test the missing/default, valid, and invalid cases. A bad value must throw at module load with
   the key named instead of becoming `undefined` downstream.
+- `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` are the one paired optional connection:
+  both empty keeps the starter disconnected; setting only one is invalid. They are public build
+  arguments in the Docker/Dokploy build, never a place for a secret/service-role key.

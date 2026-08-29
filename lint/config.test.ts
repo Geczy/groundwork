@@ -13,6 +13,7 @@ function only(findings: Finding[], rule: string): number[] {
 
 const RAW = 'ui(no-raw-element)';
 const FEATURE = 'feature(dependency-direction)';
+const ANTI_SLOP = 'anti-slop(no-module-mocking)';
 
 describe('ui/no-raw-element', () => {
   it('is on, and rejects a raw control', async () => {
@@ -58,5 +59,13 @@ describe('feature/dependency-direction', () => {
     );
 
     expect(only(found, FEATURE)).toEqual([1]);
+  });
+});
+
+describe('anti-slop/no-module-mocking', () => {
+  it('is on, and rejects module-level test doubles', async () => {
+    const found = await lintWithProjectConfig("import { vi } from 'vitest';\nvi.mock('./api');");
+
+    expect(only(found, ANTI_SLOP)).toEqual([2]);
   });
 });

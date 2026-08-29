@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { onTestFinished, vi } from 'vitest';
-import type { Plugin, ResolvedConfig } from 'vite';
+import type { OutputLifecycle } from '../output.ts';
 
 /** Stands in for Vite's logger and keeps what a table printed. */
 export type Recorder = { lines: string[]; info: (message: string) => void };
@@ -30,24 +30,13 @@ const ANSI = new RegExp(`${String.fromCodePoint(27)}\\[\\d+m`, 'gu');
 
 export const stripAnsi = (s: string): string => s.replaceAll(ANSI, '');
 
-// Vite types every hook as function-or-object, so the narrowing happens once, here.
-type Hooks = {
-  writeBundle: () => Promise<void>;
-  closeBundle: () => Promise<void> | void;
-};
-
 /**
- * Runs `configResolved` with the only two fields these plugins read, and hands back the hooks
- * a test drives by hand. The assertions are the point: a whole `ResolvedConfig` cannot be
- * stood up for two fields, and Vite types every hook as function-or-object.
+ * Runs `configResolved` with the only two fields the lifecycle reads, then hands back the hooks
+ * a test drives by hand. The production plugin wraps this same lifecycle.
  */
-export function start(plugin: Plugin, dir: string, log: Recorder): Hooks {
-  // oxlint-disable-next-line typescript/no-unsafe-type-assertion
-  const config = { build: { outDir: dir }, logger: log } as unknown as ResolvedConfig;
-  // oxlint-disable-next-line typescript/no-unsafe-type-assertion
-  const hooks = plugin as unknown as Hooks & { configResolved: (c: ResolvedConfig) => void };
-  hooks.configResolved(config);
-  return hooks;
+export function start(lifecycle: OutputLifecycle, dir: string, log: Recorder): OutputLifecycle {
+  lifecycle.configResolved({ build: { outDir: dir }, logger: log });
+  return lifecycle;
 }
 
 /** An empty stand-in for `dist/`, removed when the test ends. */

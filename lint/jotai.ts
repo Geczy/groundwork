@@ -4,7 +4,7 @@
  * The bridge hands over no type information, so every check is syntactic.
  */
 
-import type { BaseContext, Node, Rule } from './types.ts';
+import { nodeStringValue, type BaseContext, type Node, type Rule } from './types.ts';
 
 type Options = { suffixes?: string[] } | undefined;
 
@@ -39,8 +39,8 @@ const COMPONENT = /^[A-Z]/u;
 const HOOK = /^use[A-Z]/u;
 
 function isJotai(source: Node | undefined): boolean {
-  const value = source?.value;
-  return typeof value === 'string' && (value === 'jotai' || value.startsWith('jotai/'));
+  const value = nodeStringValue(source);
+  return value !== undefined && (value === 'jotai' || value.startsWith('jotai/'));
 }
 
 /** Maps a local binding back to the jotai export it came from, so `import { atom as a }` works. */

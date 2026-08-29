@@ -13,16 +13,17 @@ This file holds what is true on every task. Topic detail lives in one file per t
 the work calls for it. Claude Code and opencode pick these up as skills automatically; every other
 agent reads the path.
 
-| Doing this                                     | Read                                          |
-| ---------------------------------------------- | --------------------------------------------- |
-| Adding or changing a feature, or a route       | `.agents/skills/feature-development/SKILL.md` |
-| Building a form                                | `.agents/skills/forms/SKILL.md`               |
-| Writing JSX, styles or accessible markup       | `.agents/skills/styling-and-ui/SKILL.md`      |
-| Writing tests                                  | `.agents/skills/testing/SKILL.md`             |
-| Adding an environment variable                 | `.agents/skills/configuration/SKILL.md`       |
-| Adding a lint rule, or working out why one hit | `.agents/skills/lint-rules/SKILL.md`          |
-| Starting a real project from this template     | `.agents/skills/template-setup/SKILL.md`      |
-| Writing Jotai atoms                            | `.agents/skills/jotai/SKILL.md`               |
+| Doing this                                       | Read                                          |
+| ------------------------------------------------ | --------------------------------------------- |
+| Adding or changing a feature, or a route         | `.agents/skills/feature-development/SKILL.md` |
+| Building a form                                  | `.agents/skills/forms/SKILL.md`               |
+| Writing JSX, styles or accessible markup         | `.agents/skills/styling-and-ui/SKILL.md`      |
+| Writing tests                                    | `.agents/skills/testing/SKILL.md`             |
+| Adding an environment variable                   | `.agents/skills/configuration/SKILL.md`       |
+| Adding a lint rule, or working out why one hit   | `.agents/skills/lint-rules/SKILL.md`          |
+| Supabase schema, client, RLS, or generated types | `.agents/skills/supabase/SKILL.md`            |
+| Starting a real project from this template       | `.agents/skills/template-setup/SKILL.md`      |
+| Writing Jotai atoms                              | `.agents/skills/jotai/SKILL.md`               |
 
 Read the guide before writing the code, not after the linter objects.
 
@@ -38,11 +39,16 @@ code reads them through `src/lib/env.ts`.
 | ---------------------------------------------------- | --------------------------------------------------------------- |
 | `bun run dev`                                        | Vite dev server                                                 |
 | `bun run build`                                      | `tsc -b` then `vite build`                                      |
-| `bun run check`                                      | Format, lint, dupes, types, coverage tests and production build |
+| `bun run check`                                      | Format, lint, scripts, dupes, types, tests and production build |
 | `bun run dupes`                                      | jscpd, copy-paste across `src`, `build` and `lint`              |
 | `bun run test`                                       | Vitest watch, `app` project only                                |
 | `bun run test:infra`                                 | Vitest watch, `build` and `lint` projects                       |
 | `bun run test:coverage`                              | All three projects, v8 report in `coverage/`                    |
+| `bun run supabase:configure -- <schema>`             | Set the dedicated app schema before database hookup             |
+| `bun run db:start:local` / `db:stop:local`           | Start or stop the local Supabase CLI stack                      |
+| `bun run db:reset:local` / `gen:types:local`         | Rebuild local DB, then atomically regenerate app-schema types   |
+| `bun run db:migrate -- <file>`                       | Apply named migration files to the shared self-hosted database  |
+| `bun run gen:types:self-hosted`                      | Generate types from the shared postgres-meta service            |
 | `bun run lint` / `lint:fix` / `format` / `typecheck` | The individual steps                                            |
 
 **Run `bun run check` before claiming anything is done.** `bun run lint` alone passes while
@@ -74,9 +80,22 @@ change to `.oxlintrc.jsonc` instead of routing around it in a source file.
 | `public/`              | Copied to `dist/` verbatim, for files needing an exact name at a known URL. Anything importable belongs in `src/` so it gets hashed. |
 | `build/`               | Vite plugins `vite.config.ts` imports (brotli, image optimisation, size tables).                                                     |
 | `lint/`                | Local oxlint plugins for feature direction, Jotai, duplication and UI, plus the ESTree shapes they share in `types.ts`.              |
+| `supabase/`            | Dedicated-schema config and migrations. Runtime CLI state stays ignored.                                                             |
+| `scripts/`             | Tested local/shared Supabase wrappers; no database command runs during install, build, or `check`.                                   |
 
 `build/`, `lint/` and `*.config.ts` are a separate TypeScript project. They cannot import from
 `src` or use the `@/*` alias.
+
+## Supabase
+
+The starter has a lazy typed Supabase browser client but no database dependency at startup. Before
+hookup, run `bun run supabase:configure -- <schema>` once, then follow
+`.agents/skills/supabase/SKILL.md`. App objects belong in that dedicated schema, generated types
+must remain scoped to it, and browser code never receives a secret/service-role key.
+
+Database operations are deliberately outside `bun install`, `bun run build`, and `bun run check`:
+Dokploy's build sandbox cannot reach the shared Supabase compose network. Migrations are explicit
+operator actions, and Vite's public Supabase URL/key are baked into the static bundle at build time.
 
 ## Reuse before writing
 
@@ -87,8 +106,7 @@ answer.
 - Before building any UI pattern (a form field, an empty state, a filter bar, a segmented
   control), search `src/` for it. If something close exists, use it or widen it with a prop.
 - **Never copy a component to change three lines.** Lift the difference into a prop, or pull the
-  shared part out. `src/features/todos/segmented-field.tsx` is the worked example: the priority
-  picker and the filter bar are one control given two sets of options.
+  shared part out. Wait until two real callers establish the shared contract.
 - A pattern two features need moves to `src/components/`. A primitive everything needs is a
   shadcn component in `src/components/ui/`, added with the CLI rather than written by hand. The
   same rule outside the UI: a second caller for a helper moves it up to the layer both callers
@@ -156,9 +174,10 @@ naming the fix.
 
 Per-layer bans enforce the dependency arrows above, on top of that table.
 
-**Also on:** `react/react-compiler`; `explicit-module-boundary-types`; `ui/no-raw-element`, which
-errors on every JSX element outside its structural allowlist; `dry/no-identical-functions`;
-`import/no-cycle`; `no-deprecated`. No `any`, no non-null `!`, no `console`, no `@ts-ignore`.
+**Also on:** the React Compiler rule family; dmmulroy's 15 vendored `anti-slop/*` rules;
+`explicit-module-boundary-types`; `ui/no-raw-element`, which errors on every JSX element outside
+its structural allowlist; `dry/no-identical-functions`; `import/no-cycle`; `no-deprecated`. No
+module mocking, `any`, non-null `!`, `console`, or `@ts-ignore`.
 `react-perf` bans new objects, arrays and JSX as props, though new functions are fine. `max-lines`
 400, `max-lines-per-function` 40, `complexity` 15, with test files exempt from the first two:
 extract a hook or a sub-component rather than raising a limit.

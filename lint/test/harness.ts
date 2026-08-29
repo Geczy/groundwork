@@ -3,6 +3,7 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { onTestFinished } from 'vitest';
+import { z } from 'zod';
 
 const repo = resolve(import.meta.dirname, '..', '..');
 const oxlint = join(repo, 'node_modules', '.bin', 'oxlint');
@@ -16,13 +17,21 @@ const plugins = [
 
 export type Finding = { rule: string; message: string; help: string; line: number };
 
-type Diagnostic = {
-  code?: string;
-  message?: string;
-  // Where a rule's configured message lands. `message` is the rule's own fixed wording.
-  help?: string;
-  labels?: { span?: { line?: number } }[];
-};
+type RuleOptions = { allow?: string[]; suffixes?: string[]; minTokens?: number };
+type RuleSetting = string | [string, RuleOptions];
+
+const lintOutputSchema = z.object({
+  diagnostics: z.array(
+    z.object({
+      code: z.string().optional(),
+      message: z.string().optional(),
+      help: z.string().optional(),
+      labels: z
+        .array(z.object({ span: z.object({ line: z.number().optional() }).optional() }))
+        .optional(),
+    }),
+  ),
+});
 
 /**
  * There is no RuleTester for an oxlint JS plugin, so a case is a real file linted by the real
@@ -31,7 +40,7 @@ type Diagnostic = {
  */
 export async function lint(
   source: string,
-  rules: Record<string, unknown>,
+  rules: Record<string, RuleSetting>,
   name = 'case.tsx',
 ): Promise<Finding[]> {
   const dir = await mkdtemp(join(tmpdir(), 'lint-'));
@@ -93,8 +102,7 @@ function capture(dir: string, name: string, config: string): Promise<string> {
 function parse(stdout: string): Finding[] {
   // The shape is oxlint's `-f json` reporter, pinned by every assertion in jotai.test.ts: a
   // change to it fails those rather than passing something malformed through untyped.
-  // oxlint-disable-next-line typescript/no-unsafe-type-assertion
-  const { diagnostics } = JSON.parse(stdout) as { diagnostics: Diagnostic[] };
+  const { diagnostics } = lintOutputSchema.parse(JSON.parse(stdout));
 
   return diagnostics.map((entry) => ({
     rule: entry.code ?? '',

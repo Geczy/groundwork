@@ -6,11 +6,15 @@ Security fixes are made only on the current `main` branch and, when releases exi
 release. Older revisions are not maintained. Applications created from this starter are independent
 projects whose owners are responsible for updating dependencies and applying relevant fixes.
 
+Never place a Supabase secret/service-role key in a `VITE_*` variable or Docker build argument;
+Vite values are public bytes in the shipped bundle. Browser access uses a publishable/anon key plus
+RLS. Keep shared-database application objects inside their dedicated schema.
+
 ## Report a vulnerability
 
-Please report suspected vulnerabilities through
-[GitHub's private security advisory form](https://github.com/0dd431c8/groundwork/security/advisories/new).
-Do not include vulnerability details in a public issue, discussion, or pull request.
+Once this project has its own GitHub repository, report suspected vulnerabilities through that
+repository's private security advisory form. Until then, contact the project owner privately. Do
+not include vulnerability details in a public issue, discussion, or pull request.
 
 Include as much of the following as is practical:
 

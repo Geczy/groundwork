@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for helping improve groundwork. Changes should preserve the starter's central promise: a
+Thanks for helping improve React Boilerplate. Changes should preserve the starter's central promise: a
 fresh clone runs immediately, and one local command reproduces the complete CI gate.
 
 ## Set up the repository
@@ -15,6 +15,10 @@ bun run dev
 `bun install` also enables the repository's pre-commit hook. Read `AGENTS.md` before changing code;
 its guides describe the enforced feature layers, state ownership, UI conventions, tests, and
 tooling.
+
+The neutral template intentionally has no live database dependency. When initializing a real app,
+run `bun run supabase:configure -- <schema>` before generating database types. Never point routine
+tests at the shared production Supabase instance.
 
 ## Make a change
 

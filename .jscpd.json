@@ -10,6 +10,7 @@
     "src/test/**",
     "src/components/ui/**",
     "src/routeTree.gen.ts",
+    "src/lib/supabase/database-generated.types.ts",
     "build/test/**",
     "lint/test/**"
   ]

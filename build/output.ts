@@ -13,6 +13,11 @@ type OutputRow = { name: string; raw: number; br: number | null };
 type CompressedRow = OutputRow & { br: number };
 type Line = { name: string; tint: Paint; before: number; after: number };
 type Style = { size: Paint; gain: Paint };
+export type OutputLifecycle = {
+  configResolved: (config: { build: { outDir: string }; logger: Log }) => void;
+  writeBundle: () => Promise<void>;
+  closeBundle: () => Promise<void>;
+};
 
 const compress = promisify(brotliCompress);
 const MIN_BYTES = 1400;
@@ -26,13 +31,13 @@ const BUCKETS = [
   ['images', /\.(?:png|jpe?g|webp|avif|gif|svg|ico)$/u],
 ] as const;
 
-const encode: Record<string, (image: Sharp) => Sharp> = {
-  '.png': (image) => image.png({ quality: 80, effort: 7, palette: true }),
-  '.jpg': (image) => image.jpeg({ quality: 80, mozjpeg: true }),
-  '.jpeg': (image) => image.jpeg({ quality: 80, mozjpeg: true }),
-  '.webp': (image) => image.webp({ quality: 80, effort: 6 }),
-  '.avif': (image) => image.avif({ quality: 60, effort: 5 }),
-};
+const encode = new Map<string, (image: Sharp) => Sharp>([
+  ['.png', (image) => image.png({ quality: 80, effort: 7, palette: true })],
+  ['.jpg', (image) => image.jpeg({ quality: 80, mozjpeg: true })],
+  ['.jpeg', (image) => image.jpeg({ quality: 80, mozjpeg: true })],
+  ['.webp', (image) => image.webp({ quality: 80, effort: 6 })],
+  ['.avif', (image) => image.avif({ quality: 60, effort: 5 })],
+]);
 
 const paint =
   (...format: InspectColor[]): Paint =>
@@ -44,16 +49,16 @@ const dim = paint('dim');
 const bold = paint('bold');
 const DATA: Style = { size: dim, gain: paint('green') };
 const TOTAL: Style = { size: bold, gain: paint('bold', 'green') };
-const TINTS: Record<string, Paint> = {
-  js: paint('cyan'),
-  css: paint('magenta'),
-  fonts: paint('yellow'),
-  images: paint('blue'),
-};
+const TINTS = new Map<string, Paint>([
+  ['js', paint('cyan')],
+  ['css', paint('magenta')],
+  ['fonts', paint('yellow')],
+  ['images', paint('blue')],
+]);
 
 const bucketOf = (name: string): string =>
   BUCKETS.find(([, pattern]) => pattern.test(name))?.[0] ?? 'other';
-const tintOf = (bucket: string): Paint => TINTS[bucket] ?? plain;
+const tintOf = (bucket: string): Paint => TINTS.get(bucket) ?? plain;
 const sum = <T>(rows: readonly T[], pick: (item: T) => number): number =>
   rows.reduce((total, item) => total + pick(item), 0);
 const transfer = (item: OutputRow): number => item.br ?? item.raw;
@@ -102,7 +107,7 @@ function table(
 }
 
 function shrinkRaster(raw: Buffer, extension: string): Promise<Buffer> | null {
-  const encoder = encode[extension];
+  const encoder = encode.get(extension);
   if (encoder === undefined) return null;
   return encoder(sharp(raw).autoOrient()).toBuffer();
 }
@@ -168,15 +173,12 @@ function logTotal(log: Log, outDir: string, rows: readonly OutputRow[]): void {
   table(log, `${outDir}/ total`, '', lines, rows.length);
 }
 
-export function output(): Plugin {
+export function createOutputLifecycle(): OutputLifecycle {
   let outDir = 'dist';
   let log: Log | undefined;
   let images: ImageRow[] = [];
 
   return {
-    name: 'build-output',
-    apply: 'build',
-    enforce: 'post',
     configResolved(config) {
       outDir = config.build.outDir;
       log = config.logger;
@@ -199,5 +201,14 @@ export function output(): Plugin {
       logPrecompressed(log, outDir, rows);
       logTotal(log, outDir, rows);
     },
+  };
+}
+
+export function output(): Plugin {
+  return {
+    name: 'build-output',
+    apply: 'build',
+    enforce: 'post',
+    ...createOutputLifecycle(),
   };
 }

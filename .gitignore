@@ -20,6 +20,10 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 .env.local
 .env.*.local
 
+# Supabase CLI runtime state. Migrations and config stay tracked.
+supabase/.branches
+supabase/.temp
+
 # caches
 .eslintcache
 .cache

@@ -1,26 +1,26 @@
 /** Enforces the feature dependency direction documented in AGENTS.md. */
 
 import { basename } from 'node:path';
-import type { BaseContext, Node, Rule } from './types.ts';
+import { nodeStringValue, type BaseContext, type Node, type Rule } from './types.ts';
 
 type Context = BaseContext;
 
 type Role = 'schema' | 'state' | 'transport' | 'query' | 'rendering' | 'index';
 
-const RANK: Record<Role, number> = {
+const RANK = {
   schema: 0,
   state: 1,
   transport: 2,
   query: 3,
   rendering: 4,
   index: 5,
-};
+} satisfies Record<Role, number>;
 
-const PACKAGE_BANS: Partial<Record<Role, ReadonlySet<string>>> = {
-  schema: new Set(['react', 'jotai', '@tanstack/react-query', '@tanstack/react-form']),
-  state: new Set(['react', '@tanstack/react-query']),
-  transport: new Set(['react', 'jotai', '@tanstack/react-query']),
-};
+const PACKAGE_BANS = new Map<Role, ReadonlySet<string>>([
+  ['schema', new Set(['react', 'jotai', '@tanstack/react-query', '@tanstack/react-form'])],
+  ['state', new Set(['react', '@tanstack/react-query'])],
+  ['transport', new Set(['react', 'jotai', '@tanstack/react-query'])],
+]);
 
 function roleOfFile(filename: string): Role | undefined {
   const name = basename(filename);
@@ -73,10 +73,10 @@ function reportDirection(context: Context, node: Node, from: Role, to: Role): vo
 }
 
 function checkImport(context: Context, node: Node, role: Role): void {
-  const value = node.source?.value;
-  if (typeof value !== 'string') return;
+  const value = nodeStringValue(node.source);
+  if (value === undefined) return;
 
-  if (PACKAGE_BANS[role]?.has(value) === true) {
+  if (PACKAGE_BANS.get(role)?.has(value) === true) {
     reportPackage(context, node, role, value);
     return;
   }

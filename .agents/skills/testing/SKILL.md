@@ -1,6 +1,6 @@
 ---
 name: testing
-description: Write or fix Vitest and Testing Library tests in this repository, including provider or route rendering, API mocking, Jotai store setup, async UI, and coverage failures.
+description: Write or fix Vitest and Testing Library tests in this repository, including provider or route rendering, dependency seams, Jotai store setup, async UI, and coverage failures.
 ---
 
 # Testing
@@ -17,8 +17,8 @@ and the `@/*` alias, which need the Vite transform pipeline Vitest shares with t
 
 ```tsx
 const store = createStore();
-store.set(newTodoPriorityAtom, 'high');
-renderWithProviders(<PriorityPicker />, { store });
+store.set(preferencesAtom, { density: 'compact' });
+renderWithProviders(<SettingsPanel />, { store });
 ```
 
 - It also puts the app's real route tree in context, through `RouterContextProvider`, so a
@@ -31,13 +31,13 @@ renderWithProviders(<PriorityPicker />, { store });
   assert on the callback.
 
 ```tsx
-const onViewChange = vi.fn<(next: TodoView) => void>();
+const onTabChange = vi.fn<(next: SettingsTab) => void>();
 renderWithProviders(
-  <TodoFilters view={{ filter: 'done', search: '' }} onViewChange={onViewChange} />,
+  <SettingsTabs tab="profile" onTabChange={onTabChange} />,
 );
 ```
 
-- **When the route is the thing under test, use `renderRoute('/todos?filter=done')`.** It renders
+- **When the route is the thing under test, use `renderRoute('/settings?tab=profile')`.** It renders
   the real tree through `RouterProvider`, which is the only way to cover `validateSearch`, a loader,
   `notFound()`, or what a click does to the address bar. Prefer naming a component otherwise: it is
   faster and it says what it is testing.
@@ -49,19 +49,16 @@ renderWithProviders(
   `renderRoute` again creates a new client and cannot reproduce a stale-cache regression.
 - A component test of an error branch does not prove that a loader lets the component mount. When
   a loader primes the same query, force the initial read to fail through the real route and assert
-  the feature's alert rather than the router error fallback. Prefer the fake transport's own
-  failure control; if it has none, a narrowly scoped `.api.ts` mock is appropriate for this
-  boundary test. Keep the real query options and route loader in place.
+  the feature's alert rather than the router error fallback. Use the fake transport's own failure
+  control through a named dependency seam. Keep the real query options and route loader in place.
 - Both helpers use the deep App Runtime in `src/lib/runtime.tsx`. Do not hand-roll a `QueryClient`
   or a `createRouter` in a test: one that goes stale on a different schedule, skips the mutation
   reporter adapter, or falls back to TanStack's built-in "Not Found" proves something the app does
   not do.
 
-- **Mock the feature's `.api.ts` with `vi.mock`, never the query definitions.** That keeps the
-  real `queryOptions` wiring under test instead of a stub of it. Route tests ordinarily use the
-  existing fake server; reserve an API mock for a transport state the fake cannot produce, such as
-  proving which error boundary owns an initial read failure.
-- Query by role and accessible name (`getByRole('button', { name: 'Add todo' })`). Prefer
+- **Do not use module mocking.** Pass a faithful fake transport or reporter through a named
+  dependency seam. Keep real query definitions and cache wiring under test.
+- Query by role and accessible name (`getByRole('button', { name: 'Save changes' })`). Prefer
   `findBy*` over `waitFor` plus `getBy*`, and keep one assertion per `waitFor`.
 - Coverage thresholds are 90 across the board. Treat that as a floor against a feature landing
   with no tests, not as a quality bar. Raise it, never quietly lower it. If something is

@@ -5,7 +5,6 @@ import { DEFAULT_THEME, oppositeTheme, type Theme, themeSchema } from './theme.s
 const STORAGE_KEY = 'theme';
 
 function applyTheme(theme: Theme): void {
-  if (typeof document === 'undefined') return;
   document.documentElement.classList.toggle('dark', theme === 'dark');
 
   const meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
@@ -14,7 +13,6 @@ function applyTheme(theme: Theme): void {
 }
 
 function readTheme(key: string, initialValue: Theme): Theme {
-  if (typeof window === 'undefined') return initialValue;
   try {
     const parsed = themeSchema.safeParse(window.localStorage.getItem(key));
     return parsed.success ? parsed.data : initialValue;
@@ -25,7 +23,6 @@ function readTheme(key: string, initialValue: Theme): Theme {
 
 function writeTheme(key: string, theme: Theme): void {
   applyTheme(theme);
-  if (typeof window === 'undefined') return;
   try {
     window.localStorage.setItem(key, theme);
   } catch {
@@ -35,7 +32,6 @@ function writeTheme(key: string, theme: Theme): void {
 
 function removeTheme(key: string): void {
   applyTheme(DEFAULT_THEME);
-  if (typeof window === 'undefined') return;
   try {
     window.localStorage.removeItem(key);
   } catch {
@@ -48,7 +44,6 @@ function subscribeToTheme(
   callback: (theme: Theme) => void,
   initialValue: Theme,
 ): (() => void) | undefined {
-  if (typeof window === 'undefined') return undefined;
   const onStorage = (event: StorageEvent): void => {
     if (event.key !== key) return;
     const parsed = themeSchema.safeParse(event.newValue);

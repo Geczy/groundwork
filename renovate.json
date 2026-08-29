@@ -12,12 +12,17 @@
     {
       "description": "oxlint, its formatter and the type-aware binary are one toolchain; a version skew between them fails `check` in a way that reads like a code problem.",
       "groupName": "oxc toolchain",
-      "matchPackageNames": ["oxlint", "oxlint-tsgolint", "oxfmt"]
+      "matchPackageNames": ["oxlint", "@oxlint/plugins", "oxlint-tsgolint", "oxfmt"]
     },
     {
       "description": "React and its DOM renderer and types move together.",
       "groupName": "react",
       "matchPackageNames": ["react", "react-dom", "@types/react", "@types/react-dom"]
+    },
+    {
+      "description": "The Supabase browser SDK and CLI define the client and generated-type workflow together.",
+      "groupName": "supabase",
+      "matchPackageNames": ["@supabase/supabase-js", "supabase"]
     },
     {
       "description": "Dev dependencies automerge on a green check. `bun run check` is the gate that makes this safe; without CI it would not be.",

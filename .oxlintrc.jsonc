@@ -29,6 +29,8 @@
     { "name": "ui", "specifier": "./lint/ui.ts" },
     // Local because feature roles and their dependency direction belong to this starter.
     { "name": "feature", "specifier": "./lint/feature.ts" },
+    // Vendored from dmmulroy/anti-slop so its low-evidence TypeScript rules stay project-owned.
+    { "name": "anti-slop", "specifier": "./tools/oxlint/anti-slop/index.ts" },
     // Neither name is reserved, so these two need no alias. Testing Library is in oxlint's
     // JS-plugin conformance suite (17,016 cases, all passing), so the bridge is not the risk
     // here that its alpha label suggests.
@@ -55,8 +57,41 @@
   // Generated or vendored output, none of it hand-written and none of it hand-editable: a
   // `bunx shadcn add` rewrites src/components/ui wholesale, so a lint error there has no fix
   // that survives the next re-add. .oxfmtrc.jsonc and the coverage config draw the same line.
-  "ignorePatterns": ["dist", "src/routeTree.gen.ts", "src/components/ui"],
+  "ignorePatterns": [
+    "dist",
+    "src/routeTree.gen.ts",
+    "src/lib/supabase/database-generated.types.ts",
+    "src/components/ui",
+    ".agent/**",
+    ".agents/**",
+    ".claude/**",
+    ".codex/**",
+    ".continue/**",
+    ".cursor/**",
+    ".gemini/**",
+    ".opencode/**",
+    ".pi/**",
+    ".roo/**",
+    ".windsurf/**",
+    "tools/oxlint/anti-slop/**",
+  ],
   "rules": {
+    "anti-slop/no-chained-type-assertions": "error",
+    "anti-slop/no-conditional-empty-object-spread": "error",
+    "anti-slop/no-known-value-widening": "error",
+    "anti-slop/no-module-mocking": "error",
+    "anti-slop/no-object-parameters": "error",
+    "anti-slop/no-reflect-apply": "error",
+    "anti-slop/no-reflect-get": "error",
+    "anti-slop/no-runtime-typeof": "error",
+    "anti-slop/no-shape-in-symbol-names": "error",
+    "anti-slop/no-unknown-parameters": "error",
+    "anti-slop/no-unknown-returns": "error",
+    "anti-slop/no-unknown-type-aliases": "error",
+    "anti-slop/no-unsafe-dictionary-type": "error",
+    "anti-slop/no-widen-then-assert": "error",
+    "anti-slop/require-safety-comment-for-type-assertion": "error",
+
     "max-lines": ["error", { "max": 400, "skipBlankLines": true, "skipComments": true }],
     "max-lines-per-function": [
       "error",
@@ -121,7 +156,28 @@
     // belongs in render. `nursery`, so it is not reached by the categories above and an
     // oxlint minor can change what it reports; that is the price of the only rule here that
     // understands what React actually guarantees.
-    "react/react-compiler": "error",
+    "react/capitalized-calls": "error",
+    "react/error-boundaries": "error",
+    "react/exhaustive-effect-dependencies": "error",
+    "react/globals": "error",
+    "react/hooks": "error",
+    "react/immutability": "error",
+    "react/incompatible-library": "error",
+    "react/invariant": "error",
+    "react/memo-dependencies": "error",
+    "react/no-deriving-state-in-effects": "error",
+    "react/preserve-manual-memoization": "error",
+    "react/purity": "error",
+    "react/refs": "error",
+    "react/rule-suppression": "error",
+    "react/set-state-in-effect": "error",
+    "react/set-state-in-render": "error",
+    "react/static-components": "error",
+    "react/syntax": "error",
+    "react/todo": "error",
+    "react/unsupported-syntax": "error",
+    "react/use-memo": "error",
+    "react/void-use-memo": "error",
     // Fast Refresh only reloads a module that exports components and nothing else. Off for
     // `src/routes` below; `allowExportNames` does not help there, because it exempts the
     // export without exempting the local component beside it.

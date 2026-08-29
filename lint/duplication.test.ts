@@ -3,6 +3,7 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { describe, expect, it, onTestFinished } from 'vitest';
+import { z } from 'zod';
 
 const repo = resolve(import.meta.dirname, '..');
 const jscpd = join(repo, 'node_modules', '.bin', 'jscpd');
@@ -30,7 +31,8 @@ async function run(files: Record<string, string>): Promise<number> {
         return;
       }
       // An exit code is the finding; anything else means jscpd never ran.
-      if (typeof error.code === 'number') settle(error.code);
+      const code = z.number().safeParse(error.code);
+      if (code.success) settle(code.data);
       else fail(new Error('jscpd did not run', { cause: error }));
     });
   });

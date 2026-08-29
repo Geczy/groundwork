@@ -1,12 +1,25 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { renderRoute } from '@/test/render';
 
 describe('/', () => {
-  it('redirects to the worked example', async () => {
-    const { router } = renderRoute('/');
+  it('presents the project as a production-ready React foundation', async () => {
+    renderRoute('/');
 
-    expect(await screen.findByRole('heading', { name: 'Todos' })).toBeInTheDocument();
-    await waitFor(() => expect(router.state.location.pathname).toBe('/todos'));
+    expect(
+      await screen.findByRole('heading', {
+        name: 'A serious starting point for the app you actually want to build.',
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: '15 anti-slop rules' })).toBeInTheDocument();
+  });
+
+  it('does not ship a pretend product feature', async () => {
+    renderRoute('/');
+
+    await screen.findByRole('heading', {
+      name: 'A serious starting point for the app you actually want to build.',
+    });
+    expect(screen.queryByRole('link', { name: 'Open the example' })).not.toBeInTheDocument();
   });
 });

@@ -14,6 +14,7 @@ minimal reproduction shows that the rule rejects behavior the repository intends
 2. Locate its owner:
    - `.oxlintrc.jsonc` enables native, bridged, and local rules.
    - `lint/feature.ts`, `lint/jotai.ts`, `lint/dry.ts`, and `lint/ui.ts` implement local rules.
+   - `tools/oxlint/anti-slop/` holds dmmulroy's vendored anti-slop plugin.
    - Colocated `lint/*.test.ts` files exercise the plugin through the real oxlint binary.
    - `lint/config.test.ts` proves that the shipped project configuration enables critical rules.
 3. Compare the reported code with the rule's documented invariant and existing valid cases.
@@ -47,12 +48,15 @@ file. The harness writes an isolated file, runs the repository's oxlint binary, 
 - `ui/no-raw-element` allows structural markup and requires design-system components for controls.
   Add an element to `ALLOWED` only when it is structure the design system will never own, with the
   reason beside it.
+- `anti-slop/*` rejects low-evidence TypeScript patterns such as module mocking, unparsed unknown
+  inputs, unsafe dictionary contracts and chained assertions.
 
 ## Non-obvious configuration
 
 - Type-aware rules use the real TypeScript program; do not replace a type failure with `any`, a
   cast, or a disabled rule.
-- `react/react-compiler` checks React semantics beyond the ordinary Rules of Hooks tier.
+- The `react/*` Compiler rule family checks React semantics beyond the ordinary Rules of Hooks
+  tier.
 - `react-perf` rejects fresh objects, arrays, and JSX passed as props. Hoist stable values; fresh
   functions remain allowed.
 - Test files are exempt from line limits and identical-function checks because repeated setup can

@@ -15,11 +15,11 @@ export type RuntimeContext = { queryClient: QueryClient };
 export type RuntimeStore = ReturnType<typeof createStore>;
 
 type RuntimeOptions = {
-  history?: RouterHistory;
-  mutationErrorReporter?: (error: unknown) => void;
-  queryClient?: QueryClient;
-  queryRetry?: boolean | number;
-  store?: RuntimeStore;
+  history?: RouterHistory | undefined;
+  mutationErrorReporter?: ((error: Error) => void) | undefined;
+  queryClient?: QueryClient | undefined;
+  queryRetry?: boolean | number | undefined;
+  store?: RuntimeStore | undefined;
 };
 
 const routerDefaults = {
@@ -45,13 +45,15 @@ function buildRuntime(options: RuntimeOptions = {}) {
         queries: { staleTime: 30_000, retry: options.queryRetry ?? 1 },
       },
     });
-  const history = options.history;
-  const router = createRouter({
+  const routerOptions = {
     routeTree,
     context: { queryClient },
     ...routerDefaults,
-    ...(history === undefined ? {} : { history }),
-  });
+  };
+  const router =
+    options.history === undefined
+      ? createRouter(routerOptions)
+      : createRouter({ ...routerOptions, history: options.history });
 
   return { queryClient, router, store: options.store ?? createStore() };
 }

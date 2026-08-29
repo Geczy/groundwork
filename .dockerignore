@@ -1,0 +1,15 @@
+.git
+.github
+.agents
+.claude
+.codex
+.cursor
+.env
+.env.*
+coverage
+dist
+node_modules
+scripts
+supabase
+test-results
+tools

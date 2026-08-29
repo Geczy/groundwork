@@ -42,3 +42,11 @@ export type Rule<Context> = {
   meta?: { docs?: { description: string }; schema?: unknown[] };
   create: (context: Context) => Record<string, (node: Node) => void>;
 };
+
+const nodeStringSchema = z.string();
+
+export function nodeStringValue(node: Node | undefined): string | undefined {
+  const parsed = nodeStringSchema.safeParse(node?.value);
+  return parsed.success ? parsed.data : undefined;
+}
+import { z } from 'zod';
