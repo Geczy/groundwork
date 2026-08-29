@@ -20,6 +20,10 @@ shared or local Supabase instance.
    coordinated operation. Apply only named migrations with `bun run db:migrate -- <file.sql>`,
    verify the live objects, then run `bun run gen:types:self-hosted`.
 
+The first `bun run db:start:local` can reach PostgREST before the configured app schema exists.
+When that specific startup error occurs, the wrapper starts Postgres alone, resets it through the
+checked-in migrations, and retries the full stack. Other startup failures still stop immediately.
+
 The shared scripts check local Docker first, including a current-user Docker-group fallback, and
 use SSH only when the configured host is genuinely remote. Do not hardcode a new container name or
 host into a caller; use the documented `SUPABASE_*` overrides.
@@ -36,6 +40,10 @@ host into a caller; use the documented `SUPABASE_*` overrides.
   set an empty search path, validate `auth.uid()` inside it, and revoke default public execute.
 - Grant app roles per object in the migration that introduces the object. The bootstrap migration
   deliberately creates no broad anonymous defaults.
+- A real multi-user app adds an app-specific local tenancy command. Use the public client as two
+  disposable users to prove the second user cannot read, update, or delete the first user's rows;
+  include private Storage and ownership-transfer flows when the app has them. Keep this outside
+  `bun run check` because it requires the local containers, and remove all fixtures afterward.
 
 ## Generated types
 

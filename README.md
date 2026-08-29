@@ -75,6 +75,11 @@ bun run db:reset:local
 bun run gen:types:local
 ```
 
+If the configured schema has not been created yet, `db:start:local` bootstraps it from the checked-in
+migrations before retrying the full stack. Once an app becomes multi-user, add a separate local
+tenancy command that signs in as two disposable users and proves its actual row and Storage
+ownership boundaries; keep that database-dependent verification outside `bun run check`.
+
 For the shared self-hosted Supabase stack, database mutations remain explicit operator actions:
 
 ```sh

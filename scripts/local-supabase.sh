@@ -10,6 +10,18 @@ cd "$SUPABASE_REPO_ROOT"
 
 case "${1:-}" in
   start)
+    if start_output=$(supabase_cli start 2>&1); then
+      printf '%s\n' "$start_output"
+      exit 0
+    fi
+    printf '%s\n' "$start_output" >&2
+    if [[ "$start_output" != *"schema"*"$SUPABASE_SCHEMA"*"does not exist"* ]]; then
+      exit 1
+    fi
+    echo "Bootstrapping the missing '$SUPABASE_SCHEMA' schema from local migrations." >&2
+    supabase_cli db start
+    supabase_cli db reset --local --no-seed
+    supabase_cli stop
     supabase_cli start
     ;;
   stop)

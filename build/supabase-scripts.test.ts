@@ -187,4 +187,35 @@ printf '%s\\n' "$*" >> '${calls}'`,
     expect(await readFile(calls, 'utf8')).toMatch(/-u \S+ -g docker env .*supabase status/u);
     expect(await readFile(calls, 'utf8')).not.toContain('direct cli');
   });
+
+  it('bootstraps migrations when the configured schema is missing on first start', async () => {
+    const root = await workspace();
+    const bin = join(root, 'bin');
+    const calls = join(root, 'calls.log');
+    const marker = join(root, 'started-once');
+    const cli = join(bin, 'supabase');
+    await mkdir(bin);
+    await writeProjectConfig(root);
+    await executable(join(bin, 'docker'), 'exit 0');
+    await executable(
+      cli,
+      `printf '%s\n' "$*" >> '${calls}'
+if [[ "$*" == start && ! -f '${marker}' ]]; then
+  touch '${marker}'
+  echo '{"message":"schema \\"workout_log\\" does not exist"}' >&2
+  exit 1
+fi`,
+    );
+
+    const result = run('local-supabase.sh', root, bin, { SUPABASE_CLI: cli }, ['start']);
+
+    expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);
+    expect((await readFile(calls, 'utf8')).trim().split('\n')).toEqual([
+      'start',
+      'db start',
+      'db reset --local --no-seed',
+      'stop',
+      'start',
+    ]);
+  });
 });
