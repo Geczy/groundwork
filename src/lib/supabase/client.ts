@@ -2,15 +2,17 @@ import { createClient, type SupabaseClient as BaseSupabaseClient } from '@supaba
 import { env, type Env } from '@/lib/env';
 import { databaseSchema, type Database } from './database.types';
 
-export type SupabaseConnection = { url: string; publishableKey: string };
+export type SupabaseConnection = { publishableKey: string; url: string };
 export type SupabaseClient = BaseSupabaseClient<Database, typeof databaseSchema>;
 
 export function readSupabaseConnection(environment: Env): SupabaseConnection | null {
-  if (environment.VITE_SUPABASE_URL === '') return null;
+  if (environment.VITE_SUPABASE_URL === '') {
+    return null;
+  }
 
   return {
-    url: environment.VITE_SUPABASE_URL,
     publishableKey: environment.VITE_SUPABASE_PUBLISHABLE_KEY,
+    url: environment.VITE_SUPABASE_URL,
   };
 }
 

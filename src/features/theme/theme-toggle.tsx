@@ -11,12 +11,12 @@ export function ThemeToggle(): JSX.Element {
 
   return (
     <Button
+      aria-label={label}
+      onClick={toggleTheme}
+      size="icon-sm"
+      title={label}
       type="button"
       variant="ghost"
-      size="icon-sm"
-      aria-label={label}
-      title={label}
-      onClick={toggleTheme}
     >
       {theme === 'light' ? <MoonIcon aria-hidden="true" /> : <SunIcon aria-hidden="true" />}
     </Button>

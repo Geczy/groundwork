@@ -26,11 +26,11 @@ const exists = (path: string): Promise<boolean> =>
 const noise = (): Sharp =>
   sharp({
     create: {
-      width: 64,
-      height: 64,
+      background: { b: 0, g: 0, r: 0 },
       channels: 3,
-      background: { r: 0, g: 0, b: 0 },
-      noise: { type: 'gaussian', mean: 128, sigma: 40 },
+      height: 64,
+      noise: { mean: 128, sigma: 40, type: 'gaussian' },
+      width: 64,
     },
   });
 
@@ -61,10 +61,10 @@ describe('build output Vite interface', () => {
     await put(root, 'public/icon.svg', rawSvg);
 
     await viteBuild({
-      root,
+      build: { outDir: join(root, 'dist') },
       logLevel: 'silent',
       plugins: [output()],
-      build: { outDir: join(root, 'dist') },
+      root,
     });
 
     const optimized = await readFile(join(root, 'dist', 'icon.svg'));
@@ -104,7 +104,7 @@ describe('build output Vite interface', () => {
   it('bakes EXIF orientation into image pixels', async () => {
     const dir = await distDir();
     const raw = await sharp({
-      create: { width: 160, height: 120, channels: 3, background: { r: 200, g: 30, b: 40 } },
+      create: { background: { b: 40, g: 30, r: 200 }, channels: 3, height: 120, width: 160 },
     })
       .jpeg({ quality: 100 })
       .withMetadata({ orientation: 6 })

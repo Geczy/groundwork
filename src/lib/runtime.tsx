@@ -23,12 +23,12 @@ type RuntimeOptions = {
 };
 
 const routerDefaults = {
+  defaultErrorComponent: RouteError,
+  defaultNotFoundComponent: NotFound,
+  defaultPendingComponent: RoutePending,
   defaultPreload: 'intent',
   defaultPreloadStaleTime: 0,
   scrollRestoration: true,
-  defaultPendingComponent: RoutePending,
-  defaultErrorComponent: RouteError,
-  defaultNotFoundComponent: NotFound,
 } as const;
 
 function buildRuntime(options: RuntimeOptions = {}) {
@@ -36,18 +36,18 @@ function buildRuntime(options: RuntimeOptions = {}) {
   const queryClient =
     options.queryClient ??
     new QueryClient({
+      defaultOptions: {
+        queries: { retry: options.queryRetry ?? 1, staleTime: 30_000 },
+      },
       mutationCache: new MutationCache({
         onError: (error) => {
           mutationErrorReporter(error);
         },
       }),
-      defaultOptions: {
-        queries: { staleTime: 30_000, retry: options.queryRetry ?? 1 },
-      },
     });
   const routerOptions = {
-    routeTree,
     context: { queryClient },
+    routeTree,
     ...routerDefaults,
   };
   const router =
@@ -77,11 +77,11 @@ export function RuntimeApp({ runtime }: { runtime: AppRuntime }): JSX.Element {
 }
 
 export function RuntimeScope({
-  runtime,
   children,
+  runtime,
 }: {
-  runtime: AppRuntime;
   children: ReactNode;
+  runtime: AppRuntime;
 }): JSX.Element {
   return (
     <QueryClientProvider client={runtime.queryClient}>

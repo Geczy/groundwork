@@ -7,20 +7,6 @@ import tailwindcss from '@tailwindcss/vite';
 import { output } from './build/output.ts';
 
 export default defineConfig({
-  plugins: [
-    tanstackRouter({
-      target: 'react',
-      autoCodeSplitting: true,
-      routeFileIgnorePattern: '\\.test\\.tsx?$',
-    }),
-    react(),
-    tailwindcss(),
-    output(),
-  ],
-  resolve: {
-    // `@/*` comes from tsconfig.json's `paths`, so there is one place to change it.
-    tsconfigPaths: true,
-  },
   build: {
     // `build/output.ts` prints the sizes instead; gzip is not what gets served.
     reportCompressedSize: false,
@@ -40,5 +26,19 @@ export default defineConfig({
         },
       },
     },
+  },
+  plugins: [
+    tanstackRouter({
+      autoCodeSplitting: true,
+      routeFileIgnorePattern: '\\.test\\.tsx?$',
+      target: 'react',
+    }),
+    react(),
+    tailwindcss(),
+    output(),
+  ],
+  resolve: {
+    // `@/*` comes from tsconfig.json's `paths`, so there is one place to change it.
+    tsconfigPaths: true,
   },
 });

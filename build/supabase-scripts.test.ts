@@ -9,7 +9,7 @@ const repo = resolve(import.meta.dirname, '..');
 
 async function workspace(): Promise<string> {
   const root = await mkdtemp(join(tmpdir(), 'react-boilerplate-supabase-'));
-  onTestFinished(() => rm(root, { recursive: true, force: true }));
+  onTestFinished(() => rm(root, { force: true, recursive: true }));
   await mkdir(join(root, 'supabase', 'migrations'), { recursive: true });
   await mkdir(join(root, 'src', 'lib', 'supabase'), { recursive: true });
   return root;
@@ -25,7 +25,7 @@ function run(
   root: string,
   bin: string,
   extraEnvironment = {},
-  args: string[] = [],
+  args: Array<string> = [],
 ) {
   return spawnSync('bash', [join(repo, 'scripts', script), ...args], {
     cwd: root,

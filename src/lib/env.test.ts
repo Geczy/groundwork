@@ -24,7 +24,7 @@ describe('envSchema', () => {
   });
 
   it('ignores the keys Vite adds, so they stay off env', () => {
-    expect(envSchema.parse({ MODE: 'test', BASE_URL: '/' })).not.toHaveProperty('MODE');
+    expect(envSchema.parse({ BASE_URL: '/', MODE: 'test' })).not.toHaveProperty('MODE');
   });
 
   it('allows Supabase to remain disconnected in the reusable starter', () => {
@@ -46,12 +46,12 @@ describe('envSchema', () => {
   it('accepts a complete public Supabase connection', () => {
     expect(
       envSchema.parse({
-        VITE_SUPABASE_URL: 'https://project.supabase.co',
         VITE_SUPABASE_PUBLISHABLE_KEY: 'publishable-key',
+        VITE_SUPABASE_URL: 'https://project.supabase.co',
       }),
     ).toMatchObject({
-      VITE_SUPABASE_URL: 'https://project.supabase.co',
       VITE_SUPABASE_PUBLISHABLE_KEY: 'publishable-key',
+      VITE_SUPABASE_URL: 'https://project.supabase.co',
     });
   });
 });

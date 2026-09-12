@@ -1,6 +1,6 @@
 /**
  * The design-system rule, loaded through oxlint's JS bridge as `ui`; see `jsPlugins` in
- * .oxlintrc.jsonc.
+ * oxlint.config.ts.
  *
  * react/forbid-elements does the same job from a list of banned elements, and a banned list is
  * the wrong direction: it is correct only until src/components/ui grows a component nobody
@@ -13,9 +13,9 @@ import { readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import type { BaseContext, Node, Rule } from './types.ts';
 
-type Options = { allow?: string[] } | undefined;
+type Options = { allow?: Array<string> } | undefined;
 
-type Context = BaseContext & { options: readonly Options[] };
+type Context = BaseContext & { options: ReadonlyArray<Options> };
 
 /**
  * Elements the design system will never own, because they carry no behaviour and no styling
@@ -175,7 +175,9 @@ const PRIMITIVES = readPrimitives();
 
 function advise(tag: string): string {
   const elsewhere = ELSEWHERE.get(tag);
-  if (elsewhere !== undefined) return `Use ${elsewhere}.`;
+  if (elsewhere !== undefined) {
+    return `Use ${elsewhere}.`;
+  }
 
   const owner = OWNERS.get(tag) ?? {
     file: tag,
@@ -193,16 +195,6 @@ function advise(tag: string): string {
 }
 
 const noRawElement: Rule<Context> = {
-  meta: {
-    docs: { description: 'Disallow raw HTML controls in favour of the design system' },
-    schema: [
-      {
-        type: 'object',
-        properties: { allow: { type: 'array', items: { type: 'string' } } },
-        additionalProperties: false,
-      },
-    ],
-  },
   create(context) {
     const allowed = new Set([...ALLOWED, ...(context.options[0]?.allow ?? [])]);
 
@@ -211,15 +203,29 @@ const noRawElement: Rule<Context> = {
       // closing tag a JSXClosingElement, and `<form.Field>` a JSXMemberExpression, so all
       // three arrive here already excluded.
       JSXIdentifier: (node: Node) => {
-        if (node.parent?.type !== 'JSXOpeningElement') return;
+        if (node.parent?.type !== 'JSXOpeningElement') {
+          return;
+        }
 
         const tag = node.name;
         // A capital says it is a component, which is the whole point of the rule.
-        if (tag === undefined || !/^[a-z]/u.test(tag) || allowed.has(tag)) return;
+        if (tag === undefined || !/^[a-z]/u.test(tag) || allowed.has(tag)) {
+          return;
+        }
 
         context.report({ message: `<${tag}> is a raw element. ${advise(tag)}`, node });
       },
     };
+  },
+  meta: {
+    docs: { description: 'Disallow raw HTML controls in favour of the design system' },
+    schema: [
+      {
+        additionalProperties: false,
+        properties: { allow: { items: { type: 'string' }, type: 'array' } },
+        type: 'object',
+      },
+    ],
   },
 };
 

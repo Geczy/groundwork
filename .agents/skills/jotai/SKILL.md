@@ -1,6 +1,6 @@
 ---
 name: jotai
-description: Write, review, refactor, or debug idiomatic Jotai state code for React and TypeScript. Use when work involves Jotai atoms, derived atoms, write-only action atoms, async atoms, Provider/store usage, jotai/utils, atomWith* helpers, atomFamily or jotai-family migration, large-object/list state, render performance, testing Jotai code, or converting React Context/useState/reducer-style state into a more Jotai-like atom model.
+description: Design, review, refactor, or debug Jotai state when atom boundaries, derived state, async atoms, store scope, or render behavior are central to the task.
 ---
 
 # Jotai

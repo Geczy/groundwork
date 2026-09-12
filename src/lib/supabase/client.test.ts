@@ -11,7 +11,7 @@ describe('createSupabaseAccessor', () => {
   it('constructs lazily and reuses one browser client', () => {
     let nextIdentity = 0;
     const getClient = createSupabaseAccessor(
-      { url: 'https://project.supabase.co', publishableKey: 'publishable-key' },
+      { publishableKey: 'publishable-key', url: 'https://project.supabase.co' },
       (connection) => ({
         identity: ++nextIdentity,
         url: connection.url,

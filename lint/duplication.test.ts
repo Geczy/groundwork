@@ -17,7 +17,7 @@ const config = join(repo, '.jscpd.json');
 async function run(files: Record<string, string>): Promise<number> {
   const dir = await mkdtemp(join(tmpdir(), 'jscpd-'));
   onTestFinished(async () => {
-    await rm(dir, { recursive: true, force: true });
+    await rm(dir, { force: true, recursive: true });
   });
 
   await Promise.all(
@@ -32,8 +32,11 @@ async function run(files: Record<string, string>): Promise<number> {
       }
       // An exit code is the finding; anything else means jscpd never ran.
       const code = z.number().safeParse(error.code);
-      if (code.success) settle(code.data);
-      else fail(new Error('jscpd did not run', { cause: error }));
+      if (code.success) {
+        settle(code.data);
+      } else {
+        fail(new Error('jscpd did not run', { cause: error }));
+      }
     });
   });
 }

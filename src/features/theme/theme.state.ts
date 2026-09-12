@@ -9,7 +9,9 @@ function applyTheme(theme: Theme): void {
 
   const meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
   const color = theme === 'dark' ? meta?.dataset['themeDark'] : meta?.dataset['themeLight'];
-  if (meta !== null && color !== undefined) meta.content = color;
+  if (meta !== null && color !== undefined) {
+    meta.content = color;
+  }
 }
 
 function readTheme(key: string, initialValue: Theme): Theme {
@@ -45,7 +47,9 @@ function subscribeToTheme(
   initialValue: Theme,
 ): (() => void) | undefined {
   const onStorage = (event: StorageEvent): void => {
-    if (event.key !== key) return;
+    if (event.key !== key) {
+      return;
+    }
     const parsed = themeSchema.safeParse(event.newValue);
     const theme = parsed.success ? parsed.data : initialValue;
     applyTheme(theme);
@@ -57,8 +61,8 @@ function subscribeToTheme(
 
 const themeStorage = {
   getItem: readTheme,
-  setItem: writeTheme,
   removeItem: removeTheme,
+  setItem: writeTheme,
   subscribe: subscribeToTheme,
 };
 

@@ -11,27 +11,27 @@ import {
   type RuntimeStore,
 } from '@/lib/runtime';
 
-type Providers = { store?: RuntimeStore; queryClient?: QueryClient | undefined };
+type Providers = { queryClient?: QueryClient | undefined; store?: RuntimeStore };
 
 type Options = Omit<RenderOptions, 'wrapper'> & Providers & { path?: string };
 
-type Rendered = RenderResult & AppRuntime & { mutationErrors: Error[] };
+type Rendered = RenderResult & AppRuntime & { mutationErrors: Array<Error> };
 
 function createTestRuntime(path: string, providers: Providers): RenderedRuntime {
-  const mutationErrors: Error[] = [];
+  const mutationErrors: Array<Error> = [];
   const runtime = createAppRuntime({
     history: createMemoryHistory({ initialEntries: [path] }),
     mutationErrorReporter: (error) => {
       mutationErrors.push(error);
     },
-    queryRetry: false,
     queryClient: providers.queryClient,
+    queryRetry: false,
     store: providers.store,
   });
   return { mutationErrors, runtime };
 }
 
-type RenderedRuntime = { mutationErrors: Error[]; runtime: AppRuntime };
+type RenderedRuntime = { mutationErrors: Array<Error>; runtime: AppRuntime };
 
 /**
  * Renders `ui` in the same provider stack as src/main.tsx, over a store, a QueryClient and a
@@ -47,9 +47,9 @@ type RenderedRuntime = { mutationErrors: Error[]; runtime: AppRuntime };
  */
 export function renderWithProviders(
   ui: ReactElement,
-  { store = createStore(), queryClient, path = '/', ...options }: Options = {},
+  { path = '/', queryClient, store = createStore(), ...options }: Options = {},
 ): Rendered {
-  const { mutationErrors, runtime } = createTestRuntime(path, { store, queryClient });
+  const { mutationErrors, runtime } = createTestRuntime(path, { queryClient, store });
 
   const wrapper = ({ children }: { children: ReactNode }) => (
     <RuntimeScope runtime={runtime}>{children}</RuntimeScope>
@@ -69,9 +69,9 @@ export function renderWithProviders(
  */
 export function renderRoute(
   path: string,
-  { store = createStore(), queryClient }: Providers = {},
+  { queryClient, store = createStore() }: Providers = {},
 ): Rendered {
-  const { mutationErrors, runtime } = createTestRuntime(path, { store, queryClient });
+  const { mutationErrors, runtime } = createTestRuntime(path, { queryClient, store });
 
   return {
     ...runtime,

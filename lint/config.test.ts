@@ -2,18 +2,19 @@ import { describe, expect, it } from 'vitest';
 import { type Finding, lintWithProjectConfig } from './test/harness.ts';
 
 /**
- * That the shipped .oxlintrc.jsonc turns a rule on, which is the half a plugin's own tests
+ * That the shipped oxlint.config.ts turns a rule on, which is the half a plugin's own tests
  * cannot cover: a rule nobody enables passes every case in lint/ui.test.ts and reports nothing
  * on the repo. A fixture outside the tsconfig program also trips the type-aware rules, so each
  * case keeps only the code it came for.
  */
-function only(findings: Finding[], rule: string): number[] {
+function only(findings: Array<Finding>, rule: string): Array<number> {
   return findings.filter((finding) => finding.rule === rule).map((finding) => finding.line);
 }
 
 const RAW = 'ui(no-raw-element)';
 const FEATURE = 'feature(dependency-direction)';
 const ANTI_SLOP = 'anti-slop(no-module-mocking)';
+const NKZW = '@nkzw(no-instanceof)';
 
 describe('ui/no-raw-element', () => {
   it('is on, and rejects a raw control', async () => {
@@ -67,5 +68,17 @@ describe('anti-slop/no-module-mocking', () => {
     const found = await lintWithProjectConfig("import { vi } from 'vitest';\nvi.mock('./api');");
 
     expect(only(found, ANTI_SLOP)).toEqual([2]);
+  });
+});
+
+describe('@nkzw/no-instanceof', () => {
+  it('is on through the shared NKZW config', async () => {
+    const found = await lintWithProjectConfig(
+      `export function isDate(value: object): boolean {
+         return value instanceof Date;
+       }`,
+    );
+
+    expect(only(found, NKZW)).toEqual([2]);
   });
 });

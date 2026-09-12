@@ -9,8 +9,8 @@ export const Route = createFileRoute('/')({
     meta: [
       { title: 'React Boilerplate' },
       {
-        name: 'description',
         content: 'A strict React, TypeScript, shadcn, TanStack, and Oxlint foundation.',
+        name: 'description',
       },
     ],
   }),
@@ -53,7 +53,7 @@ function StarterHeader(): JSX.Element {
   return (
     <header className="flex min-h-16 items-center justify-between gap-6 border-b border-border px-5 pr-16 sm:px-8 sm:pr-16">
       <div className="flex items-center gap-3">
-        <span className="size-2 bg-emphasis" aria-hidden="true" />
+        <span aria-hidden="true" className="size-2 bg-emphasis" />
         <span className="text-xs font-semibold tracking-[0.18em] uppercase">React Boilerplate</span>
       </div>
       <span className="hidden text-xs text-muted-foreground sm:inline">Ready for product work</span>
@@ -87,8 +87,8 @@ function Hero(): JSX.Element {
 function StackList(): JSX.Element {
   return (
     <ul
-      className="flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted-foreground"
       aria-label="Core stack"
+      className="flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted-foreground"
     >
       {stack.map((item) => (
         <li key={item}>{item}</li>
@@ -121,9 +121,9 @@ function FoundationPanel(): JSX.Element {
 function Metrics(): JSX.Element {
   return (
     <div className="grid grid-cols-3 border-b border-border">
-      <Metric value="15" label="anti-slop rules" />
-      <Metric value="90%" label="coverage floor" />
-      <Metric value="1" label="full check" />
+      <Metric label="anti-slop rules" value="15" />
+      <Metric label="coverage floor" value="90%" />
+      <Metric label="full check" value="1" />
     </div>
   );
 }
@@ -132,8 +132,8 @@ function FoundationList(): JSX.Element {
   return (
     <ul className="flex flex-col gap-4">
       {foundation.map((item) => (
-        <li key={item} className="flex items-start gap-3 text-sm leading-relaxed">
-          <CheckIcon className="mt-1 text-emphasis" aria-hidden="true" />
+        <li className="flex items-start gap-3 text-sm leading-relaxed" key={item}>
+          <CheckIcon aria-hidden="true" className="mt-1 text-emphasis" />
           <span>{item}</span>
         </li>
       ))}
@@ -141,7 +141,7 @@ function FoundationList(): JSX.Element {
   );
 }
 
-function Metric({ value, label }: { value: string; label: string }): JSX.Element {
+function Metric({ label, value }: { label: string; value: string }): JSX.Element {
   return (
     <fieldset
       aria-label={`${value} ${label}`}

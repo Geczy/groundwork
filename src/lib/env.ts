@@ -6,13 +6,15 @@ export const envSchema = z
     // Defaults to DEV, so the devtools behave as they do today with no .env file.
     VITE_ENABLE_DEVTOOLS: z.stringbool().default(import.meta.env.DEV),
     // Empty together keeps a fresh clone runnable before its database exists.
-    VITE_SUPABASE_URL: z.union([z.literal(''), z.httpUrl()]).default(''),
     VITE_SUPABASE_PUBLISHABLE_KEY: z.string().trim().default(''),
+    VITE_SUPABASE_URL: z.union([z.literal(''), z.httpUrl()]).default(''),
   })
   .superRefine((values, context) => {
     const hasUrl = values.VITE_SUPABASE_URL !== '';
     const hasKey = values.VITE_SUPABASE_PUBLISHABLE_KEY !== '';
-    if (hasUrl === hasKey) return;
+    if (hasUrl === hasKey) {
+      return;
+    }
 
     context.addIssue({
       code: 'custom',

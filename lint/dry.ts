@@ -1,6 +1,6 @@
 /**
  * The duplication rule, loaded through oxlint's JS bridge as `dry`; see `jsPlugins` in
- * .oxlintrc.jsonc. eslint-plugin-sonarjs is the obvious source for it and cannot load here:
+ * oxlint.config.ts. eslint-plugin-sonarjs is the obvious source for it and cannot load here:
  * it pulls in ts-api-utils, which reads `ts.TypeFlags` at module scope, and TypeScript 7 has
  * no such export. The bridge hands over no type information either, so this compares tokens
  * rather than anything semantic.
@@ -10,7 +10,7 @@ import type { BaseContext, Node, Rule, Token } from './types.ts';
 
 type Options = { minTokens?: number } | undefined;
 
-type Context = BaseContext & { options: readonly Options[] };
+type Context = BaseContext & { options: ReadonlyArray<Options> };
 
 /**
  * Small enough to sit under this and a match is a coincidence rather than a copy: a body of
@@ -27,31 +27,25 @@ const DEFAULT_MIN_TOKENS = 30;
  * still matches. Names are part of the signature: two bodies that differ in what they operate
  * on are two implementations, and merging them is the refactor, not the finding.
  */
-function signature(tokens: Token[]): string {
+function signature(tokens: Array<Token>): string {
   return tokens.map((token) => token.value).join(' ');
 }
 
 const noIdenticalFunctions: Rule<Context> = {
-  meta: {
-    docs: { description: 'Disallow two functions in one file with identical bodies' },
-    schema: [
-      {
-        type: 'object',
-        properties: { minTokens: { type: 'number' } },
-        additionalProperties: false,
-      },
-    ],
-  },
   create(context) {
     const minTokens = context.options[0]?.minTokens ?? DEFAULT_MIN_TOKENS;
     const firstSeenAt = new Map<string, number>();
 
     function check(node: Node): void {
       const body = node.body;
-      if (body === undefined) return;
+      if (body === undefined) {
+        return;
+      }
 
       const tokens = context.sourceCode.getTokens(body);
-      if (tokens.length < minTokens) return;
+      if (tokens.length < minTokens) {
+        return;
+      }
 
       const key = signature(tokens);
       const first = firstSeenAt.get(key);
@@ -69,10 +63,20 @@ const noIdenticalFunctions: Rule<Context> = {
     }
 
     return {
+      ArrowFunctionExpression: check,
       FunctionDeclaration: check,
       FunctionExpression: check,
-      ArrowFunctionExpression: check,
     };
+  },
+  meta: {
+    docs: { description: 'Disallow two functions in one file with identical bodies' },
+    schema: [
+      {
+        additionalProperties: false,
+        properties: { minTokens: { type: 'number' } },
+        type: 'object',
+      },
+    ],
   },
 };
 

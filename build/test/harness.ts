@@ -5,15 +5,15 @@ import { onTestFinished, vi } from 'vitest';
 import type { OutputLifecycle } from '../output.ts';
 
 /** Stands in for Vite's logger and keeps what a table printed. */
-export type Recorder = { lines: string[]; info: (message: string) => void };
+export type Recorder = { info: (message: string) => void; lines: Array<string> };
 
 export function recorder(): Recorder {
-  const lines: string[] = [];
+  const lines: Array<string> = [];
   return {
-    lines,
     info: (msg) => {
       lines.push(msg);
     },
+    lines,
   };
 }
 
@@ -42,7 +42,7 @@ export function start(lifecycle: OutputLifecycle, dir: string, log: Recorder): O
 /** An empty stand-in for `dist/`, removed when the test ends. */
 export async function distDir(): Promise<string> {
   const dir = await mkdtemp(join(tmpdir(), 'build-'));
-  onTestFinished(() => rm(dir, { recursive: true, force: true }));
+  onTestFinished(() => rm(dir, { force: true, recursive: true }));
   return dir;
 }
 

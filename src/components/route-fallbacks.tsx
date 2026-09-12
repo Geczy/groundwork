@@ -37,12 +37,12 @@ export function RouteError({ error }: { error: Error }): JSX.Element {
 
   return (
     <Frame>
-      <div role="alert" className="flex flex-col items-center gap-2">
+      <div className="flex flex-col items-center gap-2" role="alert">
         <TriangleAlertIcon aria-hidden="true" className="size-5 text-destructive" />
         <h1 className="text-2xl leading-none">Something went wrong.</h1>
         <p className="max-w-prose text-sm text-muted-foreground">{error.message}</p>
       </div>
-      <Button type="button" size="sm" variant="outline" onClick={() => void router.invalidate()}>
+      <Button onClick={() => void router.invalidate()} size="sm" type="button" variant="outline">
         Try again
       </Button>
     </Frame>
@@ -56,7 +56,7 @@ export function NotFound(): JSX.Element {
       <p className="max-w-prose text-sm text-muted-foreground">
         That address does not match anything here.
       </p>
-      <Link to="/" className={buttonVariants({ variant: 'outline', size: 'sm' })}>
+      <Link className={buttonVariants({ size: 'sm', variant: 'outline' })} to="/">
         Go home
       </Link>
     </Frame>

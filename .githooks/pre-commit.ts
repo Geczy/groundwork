@@ -13,24 +13,28 @@ function fail(message: string): never {
   process.exit(1);
 }
 
-async function gitPaths(...args: string[]): Promise<string[]> {
-  const proc = Bun.spawn(['git', ...args, '-z'], { stdout: 'pipe', stderr: 'inherit' });
+async function gitPaths(...args: Array<string>): Promise<Array<string>> {
+  const proc = Bun.spawn(['git', ...args, '-z'], { stderr: 'inherit', stdout: 'pipe' });
   const stdout = await new Response(proc.stdout).text();
-  if ((await proc.exited) !== 0) fail(`\`git ${args.join(' ')}\` failed`);
+  if ((await proc.exited) !== 0) {
+    fail(`\`git ${args.join(' ')}\` failed`);
+  }
   return stdout.split('\0').filter(Boolean);
 }
 
-async function run(cmd: string[]): Promise<number> {
-  const proc = Bun.spawn(cmd, { stdout: 'inherit', stderr: 'inherit' });
+async function run(cmd: Array<string>): Promise<number> {
+  const proc = Bun.spawn(cmd, { stderr: 'inherit', stdout: 'inherit' });
   return await proc.exited;
 }
 
 // The `git add` below would sweep a partially staged file's remaining changes into the
 // commit, so refuse rather than silently widen it.
-async function assertFullyStaged(files: string[]): Promise<void> {
+async function assertFullyStaged(files: Array<string>): Promise<void> {
   const unstaged = new Set(await gitPaths('diff', '--name-only'));
   const partial = files.filter((file) => unstaged.has(file));
-  if (partial.length === 0) return;
+  if (partial.length === 0) {
+    return;
+  }
   fail(
     `these files are only partially staged, so auto-fixing them would pull in unstaged changes:\n` +
       partial.map((file) => `  ${file}`).join('\n') +
@@ -38,7 +42,7 @@ async function assertFullyStaged(files: string[]): Promise<void> {
   );
 }
 
-async function fixStaged(files: string[]): Promise<void> {
+async function fixStaged(files: Array<string>): Promise<void> {
   // Format first: max-lines and max-lines-per-function only mean anything on formatted source.
   if ((await run(['bunx', 'oxfmt', '--no-error-on-unmatched-pattern', ...files])) !== 0) {
     fail('formatting failed');
@@ -51,7 +55,9 @@ async function fixStaged(files: string[]): Promise<void> {
   if ((await run(['bunx', 'oxfmt', '--no-error-on-unmatched-pattern', ...files])) !== 0) {
     fail('formatting failed');
   }
-  if ((await run(['git', 'add', '--', ...files])) !== 0) fail('could not re-stage fixed files');
+  if ((await run(['git', 'add', '--', ...files])) !== 0) {
+    fail('could not re-stage fixed files');
+  }
 }
 
 const staged = (await gitPaths('diff', '--cached', '--name-only', '--diff-filter=ACMR')).filter(
@@ -64,4 +70,6 @@ if (staged.length > 0) {
 }
 
 // `-b`, not `--noEmit`: app and tooling are separate projects and only build mode checks both.
-if ((await run(['bunx', 'tsc', '-b'])) !== 0) fail('typecheck failed');
+if ((await run(['bunx', 'tsc', '-b'])) !== 0) {
+  fail('typecheck failed');
+}

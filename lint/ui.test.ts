@@ -48,7 +48,9 @@ describe('no-raw-element', () => {
     );
 
     expect(found).toHaveLength(3);
-    for (const finding of found) expect(finding.message).toContain('add table');
+    for (const finding of found) {
+      expect(finding.message).toContain('add table');
+    }
   });
 
   it('allows structure, since no component is coming for it', async () => {

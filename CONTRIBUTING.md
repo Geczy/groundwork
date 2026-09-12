@@ -12,9 +12,8 @@ bun install
 bun run dev
 ```
 
-`bun install` also enables the repository's pre-commit hook. Read `AGENTS.md` before changing code;
-its guides describe the enforced feature layers, state ownership, UI conventions, tests, and
-tooling.
+`bun install` also enables the repository's pre-commit hook. `AGENTS.md` routes work to
+topic-specific guides; load only the guide that matches the change.
 
 The neutral template intentionally has no live database dependency. When initializing a real app,
 run `bun run supabase:configure -- <schema>` before generating database types. Never point routine

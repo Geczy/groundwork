@@ -8,15 +8,15 @@ import type { Plugin } from 'vite';
 
 type Log = { info: (message: string) => void };
 type Paint = (value: string) => string;
-type ImageRow = { name: string; before: number; after: number };
-type OutputRow = { name: string; raw: number; br: number | null };
+type ImageRow = { after: number; before: number; name: string };
+type OutputRow = { br: number | null; name: string; raw: number };
 type CompressedRow = OutputRow & { br: number };
-type Line = { name: string; tint: Paint; before: number; after: number };
-type Style = { size: Paint; gain: Paint };
+type Line = { after: number; before: number; name: string; tint: Paint };
+type Style = { gain: Paint; size: Paint };
 export type OutputLifecycle = {
+  closeBundle: () => Promise<void>;
   configResolved: (config: { build: { outDir: string }; logger: Log }) => void;
   writeBundle: () => Promise<void>;
-  closeBundle: () => Promise<void>;
 };
 
 const compress = promisify(brotliCompress);
@@ -32,23 +32,23 @@ const BUCKETS = [
 ] as const;
 
 const encode = new Map<string, (image: Sharp) => Sharp>([
-  ['.png', (image) => image.png({ quality: 80, effort: 7, palette: true })],
-  ['.jpg', (image) => image.jpeg({ quality: 80, mozjpeg: true })],
-  ['.jpeg', (image) => image.jpeg({ quality: 80, mozjpeg: true })],
-  ['.webp', (image) => image.webp({ quality: 80, effort: 6 })],
-  ['.avif', (image) => image.avif({ quality: 60, effort: 5 })],
+  ['.png', (image) => image.png({ effort: 7, palette: true, quality: 80 })],
+  ['.jpg', (image) => image.jpeg({ mozjpeg: true, quality: 80 })],
+  ['.jpeg', (image) => image.jpeg({ mozjpeg: true, quality: 80 })],
+  ['.webp', (image) => image.webp({ effort: 6, quality: 80 })],
+  ['.avif', (image) => image.avif({ effort: 5, quality: 60 })],
 ]);
 
 const paint =
-  (...format: InspectColor[]): Paint =>
+  (...format: Array<InspectColor>): Paint =>
   (value) =>
     styleText(format, value);
 
 const plain: Paint = (value) => value;
 const dim = paint('dim');
 const bold = paint('bold');
-const DATA: Style = { size: dim, gain: paint('green') };
-const TOTAL: Style = { size: bold, gain: paint('bold', 'green') };
+const DATA: Style = { gain: paint('green'), size: dim };
+const TOTAL: Style = { gain: paint('bold', 'green'), size: bold };
 const TINTS = new Map<string, Paint>([
   ['js', paint('cyan')],
   ['css', paint('magenta')],
@@ -59,7 +59,7 @@ const TINTS = new Map<string, Paint>([
 const bucketOf = (name: string): string =>
   BUCKETS.find(([, pattern]) => pattern.test(name))?.[0] ?? 'other';
 const tintOf = (bucket: string): Paint => TINTS.get(bucket) ?? plain;
-const sum = <T>(rows: readonly T[], pick: (item: T) => number): number =>
+const sum = <T>(rows: ReadonlyArray<T>, pick: (item: T) => number): number =>
   rows.reduce((total, item) => total + pick(item), 0);
 const transfer = (item: OutputRow): number => item.br ?? item.raw;
 const kilobytes = (value: number): string => `${(value / 1000).toFixed(2)} kB`.padStart(9);
@@ -70,7 +70,9 @@ function decorate(name: string, tint: Paint): string {
   const directory = cut === 0 ? '' : dim(name.slice(0, cut));
   const base = name.slice(cut);
   const hash = HASH.exec(base);
-  if (!hash) return directory + tint(base);
+  if (!hash) {
+    return directory + tint(base);
+  }
   const end = hash.index + hash[0].length;
   return directory + tint(base.slice(0, hash.index)) + dim(hash[0]) + tint(base.slice(end));
 }
@@ -89,10 +91,12 @@ function table(
   log: Log,
   title: string,
   note: string,
-  lines: readonly Line[],
+  lines: ReadonlyArray<Line>,
   count = lines.length,
 ) {
-  if (lines.length === 0) return;
+  if (lines.length === 0) {
+    return;
+  }
   const total = fileCount(count);
   const width = Math.max(...lines.map((line) => line.name.length), total.length);
 
@@ -108,7 +112,9 @@ function table(
 
 function shrinkRaster(raw: Buffer, extension: string): Promise<Buffer> | null {
   const encoder = encode.get(extension);
-  if (encoder === undefined) return null;
+  if (encoder === undefined) {
+    return null;
+  }
   return encoder(sharp(raw).autoOrient()).toBuffer();
 }
 
@@ -116,58 +122,62 @@ async function shrinkImage(outDir: string, name: string): Promise<ImageRow | nul
   const path = join(outDir, name);
   const raw = await readFile(path);
   const optimized = name.endsWith('.svg')
-    ? Buffer.from(optimizeSvg(raw.toString('utf8'), { path: name, multipass: true }).data)
+    ? Buffer.from(optimizeSvg(raw.toString('utf8'), { multipass: true, path: name }).data)
     : await shrinkRaster(raw, extname(name));
 
-  if (optimized === null || optimized.byteLength >= raw.byteLength) return null;
+  if (optimized === null || optimized.byteLength >= raw.byteLength) {
+    return null;
+  }
   await writeFile(path, optimized);
-  return { name, before: raw.byteLength, after: optimized.byteLength };
+  return { after: optimized.byteLength, before: raw.byteLength, name };
 }
 
 async function measureOutput(outDir: string, name: string): Promise<OutputRow | null> {
   const path = join(outDir, name);
   const info = await stat(path);
-  if (!info.isFile()) return null;
+  if (!info.isFile()) {
+    return null;
+  }
   if (!PRECOMPRESS.test(name) || info.size < MIN_BYTES) {
-    return { name, raw: info.size, br: null };
+    return { br: null, name, raw: info.size };
   }
   const compressed = await compress(await readFile(path));
   await writeFile(`${path}.br`, compressed);
-  return { name, raw: info.size, br: compressed.byteLength };
+  return { br: compressed.byteLength, name, raw: info.size };
 }
 
-function logImages(log: Log, outDir: string, rows: readonly ImageRow[]): void {
+function logImages(log: Log, outDir: string, rows: ReadonlyArray<ImageRow>): void {
   const lines = rows
     .toSorted((a, b) => b.after - a.after)
     .map((item) => ({
+      after: item.after,
+      before: item.before,
       name: item.name,
       tint: tintOf(bucketOf(item.name)),
-      before: item.before,
-      after: item.after,
     }));
   table(log, 'images', `(${outDir}/)`, lines);
 }
 
-function logPrecompressed(log: Log, outDir: string, rows: readonly OutputRow[]): void {
+function logPrecompressed(log: Log, outDir: string, rows: ReadonlyArray<OutputRow>): void {
   const lines = rows
     .filter((item): item is CompressedRow => item.br !== null)
     .toSorted((a, b) => b.br - a.br)
     .map((item) => ({
+      after: item.br,
+      before: item.raw,
       name: item.name,
       tint: tintOf(bucketOf(item.name)),
-      before: item.raw,
-      after: item.br,
     }));
   table(log, 'brotli', `(${outDir}/, ${String(MIN_BYTES)} bytes and up)`, lines);
 }
 
-function logTotal(log: Log, outDir: string, rows: readonly OutputRow[]): void {
+function logTotal(log: Log, outDir: string, rows: ReadonlyArray<OutputRow>): void {
   const lines = [...Map.groupBy(rows, (item) => bucketOf(item.name))]
     .map(([bucket, group]) => ({
+      after: sum(group, transfer),
+      before: sum(group, (item) => item.raw),
       name: bucket,
       tint: tintOf(bucket),
-      before: sum(group, (item) => item.raw),
-      after: sum(group, transfer),
     }))
     .toSorted((a, b) => b.after - a.after);
   table(log, `${outDir}/ total`, '', lines, rows.length);
@@ -176,9 +186,22 @@ function logTotal(log: Log, outDir: string, rows: readonly OutputRow[]): void {
 export function createOutputLifecycle(): OutputLifecycle {
   let outDir = 'dist';
   let log: Log | undefined;
-  let images: ImageRow[] = [];
+  let images: Array<ImageRow> = [];
 
   return {
+    async closeBundle() {
+      const names = await readdir(outDir, { recursive: true });
+      const measured = await Promise.all(
+        names.filter((name) => !name.endsWith('.br')).map((name) => measureOutput(outDir, name)),
+      );
+      const rows = measured.filter((item) => item !== null);
+      if (log === undefined) {
+        return;
+      }
+      logImages(log, outDir, images);
+      logPrecompressed(log, outDir, rows);
+      logTotal(log, outDir, rows);
+    },
     configResolved(config) {
       outDir = config.build.outDir;
       log = config.logger;
@@ -190,25 +213,14 @@ export function createOutputLifecycle(): OutputLifecycle {
       );
       images = rows.filter((item) => item !== null);
     },
-    async closeBundle() {
-      const names = await readdir(outDir, { recursive: true });
-      const measured = await Promise.all(
-        names.filter((name) => !name.endsWith('.br')).map((name) => measureOutput(outDir, name)),
-      );
-      const rows = measured.filter((item) => item !== null);
-      if (log === undefined) return;
-      logImages(log, outDir, images);
-      logPrecompressed(log, outDir, rows);
-      logTotal(log, outDir, rows);
-    },
   };
 }
 
 export function output(): Plugin {
   return {
-    name: 'build-output',
     apply: 'build',
     enforce: 'post',
+    name: 'build-output',
     ...createOutputLifecycle(),
   };
 }

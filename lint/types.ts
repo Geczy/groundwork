@@ -6,41 +6,41 @@
  */
 
 export type Node = {
-  type: string;
-  parent?: Node | null | undefined;
   body?: Node | undefined;
   callee?: Node | undefined;
-  elements?: (Node | null)[] | undefined;
+  elements?: Array<Node | null> | undefined;
   id?: Node | null | undefined;
-  init?: Node | null | undefined;
   imported?: Node | undefined;
+  init?: Node | null | undefined;
   local?: Node | undefined;
   name?: string | undefined;
+  parent?: Node | null | undefined;
   source?: Node | undefined;
-  specifiers?: Node[] | undefined;
+  specifiers?: Array<Node> | undefined;
+  type: string;
   value?: unknown;
 };
 
 export type Token = { value: string };
 
-export type Loc = { start: { line: number }; end: { line: number } };
+export type Loc = { end: { line: number }; start: { line: number } };
 
 export type SourceCode = {
   getLoc: (node: Node) => Loc;
-  getTokens: (node: Node) => Token[];
+  getTokens: (node: Node) => Array<Token>;
 };
 
 /** Everything a rule gets except its own options, which each plugin types for itself. */
 export type BaseContext = {
   filename: string;
-  sourceCode: SourceCode;
   report: (descriptor: { message: string; node: Node }) => void;
+  sourceCode: SourceCode;
 };
 
 export type Rule<Context> = {
-  // `schema` is not decoration: oxlint rejects options outright for a rule without one.
-  meta?: { docs?: { description: string }; schema?: unknown[] };
   create: (context: Context) => Record<string, (node: Node) => void>;
+  // `schema` is not decoration: oxlint rejects options outright for a rule without one.
+  meta?: { docs?: { description: string }; schema?: Array<unknown> };
 };
 
 const nodeStringSchema = z.string();
