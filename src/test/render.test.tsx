@@ -1,16 +1,19 @@
-import { describe, expect, it } from 'vitest';
-import { renderWithProviders } from './render';
+import { describe, expect, it } from "vitest";
 
-describe('renderWithProviders', () => {
-  it('reports mutation errors through the test adapter', async () => {
+import { renderWithProviders } from "./render";
+
+describe("renderWithProviders", () => {
+  it("reports mutation errors through the test adapter", async () => {
     const { mutationErrors, queryClient } = renderWithProviders(<p>ready</p>);
-    const error = new Error('offline');
+    const error = new Error("offline");
     const mutation = queryClient.getMutationCache().build(queryClient, {
-      mutationFn: (_input: null) => Promise.reject(error),
+      mutationFn: async (_input: null) => {
+        throw error;
+      },
       retry: false,
     });
 
-    await expect(mutation.execute(null)).rejects.toThrow('offline');
+    await expect(mutation.execute(null)).rejects.toThrow("offline");
 
     expect(mutationErrors).toEqual([error]);
   });

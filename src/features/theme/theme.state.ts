@@ -1,50 +1,55 @@
-import { atom } from 'jotai';
-import { atomWithStorage } from 'jotai/utils';
-import { DEFAULT_THEME, oppositeTheme, type Theme, themeSchema } from './theme.schema';
+import { atom } from "jotai";
+import { atomWithStorage } from "jotai/utils";
 
-const STORAGE_KEY = 'theme';
+import { DEFAULT_THEME, oppositeTheme, themeSchema } from "./theme.schema";
+import type { Theme } from "./theme.schema";
 
-function applyTheme(theme: Theme): void {
-  document.documentElement.classList.toggle('dark', theme === 'dark');
+const STORAGE_KEY = "theme";
 
-  const meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
-  const color = theme === 'dark' ? meta?.dataset['themeDark'] : meta?.dataset['themeLight'];
+const applyTheme = function applyTheme(theme: Theme): void {
+  document.documentElement.classList.toggle("dark", theme === "dark");
+
+  const meta = document.querySelector<HTMLMetaElement>(
+    'meta[name="theme-color"]'
+  );
+  const color =
+    theme === "dark" ? meta?.dataset["themeDark"] : meta?.dataset["themeLight"];
   if (meta !== null && color !== undefined) {
     meta.content = color;
   }
-}
+};
 
-function readTheme(key: string, initialValue: Theme): Theme {
+const readTheme = function readTheme(key: string, initialValue: Theme): Theme {
   try {
     const parsed = themeSchema.safeParse(window.localStorage.getItem(key));
     return parsed.success ? parsed.data : initialValue;
   } catch {
     return initialValue;
   }
-}
+};
 
-function writeTheme(key: string, theme: Theme): void {
+const writeTheme = function writeTheme(key: string, theme: Theme): void {
   applyTheme(theme);
   try {
     window.localStorage.setItem(key, theme);
   } catch {
     // The in-memory atom and document theme still work when storage is unavailable.
   }
-}
+};
 
-function removeTheme(key: string): void {
+const removeTheme = function removeTheme(key: string): void {
   applyTheme(DEFAULT_THEME);
   try {
     window.localStorage.removeItem(key);
   } catch {
     // Removing persistence is best-effort for the same reason as writing it.
   }
-}
+};
 
-function subscribeToTheme(
+const subscribeToTheme = function subscribeToTheme(
   key: string,
   callback: (theme: Theme) => void,
-  initialValue: Theme,
+  initialValue: Theme
 ): (() => void) | undefined {
   const onStorage = (event: StorageEvent): void => {
     if (event.key !== key) {
@@ -55,9 +60,9 @@ function subscribeToTheme(
     applyTheme(theme);
     callback(theme);
   };
-  window.addEventListener('storage', onStorage);
-  return () => window.removeEventListener('storage', onStorage);
-}
+  window.addEventListener("storage", onStorage);
+  return () => window.removeEventListener("storage", onStorage);
+};
 
 const themeStorage = {
   getItem: readTheme,
@@ -66,9 +71,14 @@ const themeStorage = {
   subscribe: subscribeToTheme,
 };
 
-export const themeAtom = atomWithStorage<Theme>(STORAGE_KEY, DEFAULT_THEME, themeStorage, {
-  getOnInit: true,
-});
+export const themeAtom = atomWithStorage<Theme>(
+  STORAGE_KEY,
+  DEFAULT_THEME,
+  themeStorage,
+  {
+    getOnInit: true,
+  }
+);
 
 export const toggleThemeAtom = atom(null, (get, set) => {
   set(themeAtom, oppositeTheme(get(themeAtom)));

@@ -1,12 +1,25 @@
-import { createClient, type SupabaseClient as BaseSupabaseClient } from '@supabase/supabase-js';
-import { env, type Env } from '@/lib/env';
-import { databaseSchema, type Database } from './database.types';
+import { createClient } from "@supabase/supabase-js";
+import type { SupabaseClient as BaseSupabaseClient } from "@supabase/supabase-js";
 
-export type SupabaseConnection = { publishableKey: string; url: string };
-export type SupabaseClient = BaseSupabaseClient<Database, typeof databaseSchema>;
+import { env } from "@/lib/env";
+import type { Env } from "@/lib/env";
 
-export function readSupabaseConnection(environment: Env): SupabaseConnection | null {
-  if (environment.VITE_SUPABASE_URL === '') {
+import { databaseSchema } from "./database.types";
+import type { Database } from "./database.types";
+
+export interface SupabaseConnection {
+  publishableKey: string;
+  url: string;
+}
+export type SupabaseClient = BaseSupabaseClient<
+  Database,
+  typeof databaseSchema
+>;
+
+export const readSupabaseConnection = function readSupabaseConnection(
+  environment: Env
+): SupabaseConnection | null {
+  if (environment.VITE_SUPABASE_URL === "") {
     return null;
   }
 
@@ -14,29 +27,38 @@ export function readSupabaseConnection(environment: Env): SupabaseConnection | n
     publishableKey: environment.VITE_SUPABASE_PUBLISHABLE_KEY,
     url: environment.VITE_SUPABASE_URL,
   };
-}
+};
 
-export function createSupabaseAccessor<Client>(
+export const createSupabaseAccessor = function createSupabaseAccessor<Client>(
   connection: SupabaseConnection | null,
-  create: (connection: SupabaseConnection) => Client,
+  create: (connection: SupabaseConnection) => Client
 ): () => Client {
   let client: Client | undefined;
 
   return () => {
     if (connection === null) {
       throw new Error(
-        'Supabase is not connected. Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY.',
+        "Supabase is not connected. Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY."
       );
     }
     client ??= create(connection);
     return client;
   };
-}
+};
 
-function createBrowserClient(connection: SupabaseConnection): SupabaseClient {
-  return createClient<Database, typeof databaseSchema>(connection.url, connection.publishableKey, {
-    db: { schema: databaseSchema },
-  });
-}
+const createBrowserClient = function createBrowserClient(
+  connection: SupabaseConnection
+): SupabaseClient {
+  return createClient<Database, typeof databaseSchema>(
+    connection.url,
+    connection.publishableKey,
+    {
+      db: { schema: databaseSchema },
+    }
+  );
+};
 
-export const getSupabase = createSupabaseAccessor(readSupabaseConnection(env), createBrowserClient);
+export const getSupabase = createSupabaseAccessor(
+  readSupabaseConnection(env),
+  createBrowserClient
+);

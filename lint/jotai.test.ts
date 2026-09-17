@@ -1,41 +1,42 @@
-import { describe, expect, it } from 'vitest';
-import { lint } from './test/harness.ts';
+import { describe, expect, it } from "vitest";
 
-const inRender = { 'jotai/no-atom-in-render': 'error' };
-const narrowHook = { 'jotai/prefer-narrow-hook': 'error' };
-const suffix = { 'jotai/atom-suffix': 'error' };
+import { lint } from "./test/harness.ts";
 
-describe('no-atom-in-render', () => {
-  it('reports an atom created in a component', async () => {
+const inRender = { "jotai/no-atom-in-render": "error" };
+const narrowHook = { "jotai/prefer-narrow-hook": "error" };
+const suffix = { "jotai/atom-suffix": "error" };
+
+describe("no-atom-in-render", () => {
+  it("reports an atom created in a component", async () => {
     const found = await lint(
       `import { atom } from 'jotai';
        export function Item() {
          const itemAtom = atom(0);
          return itemAtom;
        }`,
-      inRender,
+      inRender
     );
 
     expect(found).toHaveLength(1);
-    expect(found[0]?.rule).toBe('jotai(no-atom-in-render)');
-    expect(found[0]?.message).toContain('every render of Item');
+    expect(found[0]?.rule).toBe("jotai(no-atom-in-render)");
+    expect(found[0]?.message).toContain("every render of Item");
     expect(found[0]?.line).toBe(3);
   });
 
-  it('reports an atom created in a hook', async () => {
+  it("reports an atom created in a hook", async () => {
     const found = await lint(
       `import { atomWithStorage } from 'jotai/utils';
        export function useThing() {
          return atomWithStorage('k', 0);
        }`,
-      inRender,
+      inRender
     );
 
     expect(found).toHaveLength(1);
-    expect(found[0]?.message).toContain('every render of useThing');
+    expect(found[0]?.message).toContain("every render of useThing");
   });
 
-  it('allows a memoized atom, module scope, and a plain factory function', async () => {
+  it("allows a memoized atom, module scope, and a plain factory function", async () => {
     const found = await lint(
       `import { atom } from 'jotai';
        import { useMemo } from 'react';
@@ -46,13 +47,13 @@ describe('no-atom-in-render', () => {
        export function Item({ id }: { id: number }) {
          return useMemo(() => atom(id), [id]);
        }`,
-      inRender,
+      inRender
     );
 
     expect(found).toEqual([]);
   });
 
-  it('ignores an `atom` that did not come from jotai', async () => {
+  it("ignores an `atom` that did not come from jotai", async () => {
     const found = await lint(
       `function atom(value: number) {
          return value;
@@ -60,28 +61,28 @@ describe('no-atom-in-render', () => {
        export function Item() {
          return atom(0);
        }`,
-      inRender,
+      inRender
     );
 
     expect(found).toEqual([]);
   });
 
-  it('follows a renamed import', async () => {
+  it("follows a renamed import", async () => {
     const found = await lint(
       `import { atom as makeAtom } from 'jotai';
        export function Item() {
          return makeAtom(0);
        }`,
-      inRender,
+      inRender
     );
 
     expect(found).toHaveLength(1);
-    expect(found[0]?.message).toContain('`atom()` runs on every render');
+    expect(found[0]?.message).toContain("`atom()` runs on every render");
   });
 });
 
-describe('prefer-narrow-hook', () => {
-  it('reports a read-only useAtom', async () => {
+describe("prefer-narrow-hook", () => {
+  it("reports a read-only useAtom", async () => {
     const found = await lint(
       `import { useAtom } from 'jotai';
        import { countAtom } from './atoms.ts';
@@ -89,15 +90,15 @@ describe('prefer-narrow-hook', () => {
          const [count] = useAtom(countAtom);
          return count;
        }`,
-      narrowHook,
+      narrowHook
     );
 
     expect(found).toHaveLength(1);
-    expect(found[0]?.rule).toBe('jotai(prefer-narrow-hook)');
-    expect(found[0]?.message).toContain('only reads, so use `useAtomValue`');
+    expect(found[0]?.rule).toBe("jotai(prefer-narrow-hook)");
+    expect(found[0]?.message).toContain("only reads, so use `useAtomValue`");
   });
 
-  it('reports a write-only useAtom', async () => {
+  it("reports a write-only useAtom", async () => {
     const found = await lint(
       `import { useAtom } from 'jotai';
        import { countAtom } from './atoms.ts';
@@ -105,14 +106,14 @@ describe('prefer-narrow-hook', () => {
          const [, setCount] = useAtom(countAtom);
          return setCount;
        }`,
-      narrowHook,
+      narrowHook
     );
 
     expect(found).toHaveLength(1);
-    expect(found[0]?.message).toContain('only writes, so use `useSetAtom`');
+    expect(found[0]?.message).toContain("only writes, so use `useSetAtom`");
   });
 
-  it('allows useAtom when both halves are used', async () => {
+  it("allows useAtom when both halves are used", async () => {
     const found = await lint(
       `import { useAtom, useAtomValue, useSetAtom } from 'jotai';
        import { countAtom } from './atoms.ts';
@@ -122,41 +123,41 @@ describe('prefer-narrow-hook', () => {
          const set = useSetAtom(countAtom);
          return [count, setCount, value, set];
        }`,
-      narrowHook,
+      narrowHook
     );
 
     expect(found).toEqual([]);
   });
 });
 
-describe('atom-suffix', () => {
-  it('reports a module-scope atom without the suffix', async () => {
+describe("atom-suffix", () => {
+  it("reports a module-scope atom without the suffix", async () => {
     const found = await lint(
       `import { atom } from 'jotai';
        export const total = atom(0);`,
       suffix,
-      'atoms.ts',
+      "atoms.ts"
     );
 
     expect(found).toHaveLength(1);
-    expect(found[0]?.rule).toBe('jotai(atom-suffix)');
-    expect(found[0]?.message).toContain('name it `totalAtom`');
+    expect(found[0]?.rule).toBe("jotai(atom-suffix)");
+    expect(found[0]?.message).toContain("name it `totalAtom`");
   });
 
-  it('allows a suffixed atom and leaves atomFamily alone', async () => {
+  it("allows a suffixed atom and leaves atomFamily alone", async () => {
     const found = await lint(
       `import { atom } from 'jotai';
        import { atomFamily } from 'jotai/utils';
        export const totalAtom = atom(0);
        export const itemFamily = atomFamily((id: number) => atom(id));`,
       suffix,
-      'atoms.ts',
+      "atoms.ts"
     );
 
     expect(found).toEqual([]);
   });
 
-  it('leaves a local atom to no-atom-in-render', async () => {
+  it("leaves a local atom to no-atom-in-render", async () => {
     const found = await lint(
       `import { atom } from 'jotai';
        export function makeAtom(value: number) {
@@ -164,18 +165,18 @@ describe('atom-suffix', () => {
          return inner;
        }`,
       suffix,
-      'atoms.ts',
+      "atoms.ts"
     );
 
     expect(found).toEqual([]);
   });
 
-  it('honours a configured suffix list', async () => {
+  it("honours a configured suffix list", async () => {
     const found = await lint(
       `import { atom } from 'jotai';
        export const totalState = atom(0);`,
-      { 'jotai/atom-suffix': ['error', { suffixes: ['State'] }] },
-      'atoms.ts',
+      { "jotai/atom-suffix": ["error", { suffixes: ["State"] }] },
+      "atoms.ts"
     );
 
     expect(found).toEqual([]);

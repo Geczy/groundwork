@@ -1,59 +1,62 @@
-import { describe, expect, it } from 'vitest';
-import { lint } from './test/harness.ts';
+import { describe, expect, it } from "vitest";
 
-const raw = { 'ui/no-raw-element': 'error' };
+import { lint } from "./test/harness.ts";
 
-describe('no-raw-element', () => {
-  it('names the component when src/components/ui already holds one', async () => {
+const raw = { "ui/no-raw-element": "error" };
+
+describe("no-raw-element", () => {
+  it("names the component when src/components/ui already holds one", async () => {
     const found = await lint(
       `export function W() {
          return <button type="button">go</button>;
        }`,
-      raw,
+      raw
     );
 
     expect(found).toHaveLength(1);
-    expect(found[0]?.rule).toBe('ui(no-raw-element)');
-    expect(found[0]?.message).toContain('Use `Button` from @/components/ui/button');
+    expect(found[0]?.rule).toBe("ui(no-raw-element)");
+    expect(found[0]?.message).toContain(
+      "Use `Button` from @/components/ui/button"
+    );
   });
 
-  it('names the command when the primitive is missing', async () => {
+  it("names the command when the primitive is missing", async () => {
     const found = await lint(
       `export function W() {
          return <textarea />;
        }`,
-      raw,
+      raw
     );
 
-    expect(found[0]?.message).toContain('bunx shadcn@latest add textarea');
+    expect(found[0]?.message).toContain("bunx shadcn@latest add textarea");
   });
 
-  it('sends the elements a shadcn primitive never covers somewhere else', async () => {
+  it("sends the elements a shadcn primitive never covers somewhere else", async () => {
     const found = await lint(
       `export function W() {
          return <a href="/x">x</a>;
        }`,
-      raw,
+      raw
     );
 
-    expect(found[0]?.message).toContain('@tanstack/react-router');
+    expect(found[0]?.message).toContain("@tanstack/react-router");
   });
 
-  it('points every part of a table at the one primitive that owns it', async () => {
+  it("points every part of a table at the one primitive that owns it", async () => {
     const found = await lint(
       `export function W() {
          return <tbody><tr><td>1</td></tr></tbody>;
        }`,
-      raw,
+      raw
     );
 
     expect(found).toHaveLength(3);
     for (const finding of found) {
-      expect(finding.message).toContain('add table');
+      expect(finding.message).toContain("add table");
     }
   });
 
-  it('allows structure, since no component is coming for it', async () => {
+  it("allows structure, since no component is coming for it", async () => {
     const found = await lint(
       `export function W() {
          return (
@@ -74,13 +77,13 @@ describe('no-raw-element', () => {
            </section>
          );
        }`,
-      raw,
+      raw
     );
 
     expect(found).toEqual([]);
   });
 
-  it('reads element names only, not components, members or attributes', async () => {
+  it("reads element names only, not components, members or attributes", async () => {
     const found = await lint(
       `export function W({ form }: { form: { Field: () => null } }) {
          return (
@@ -89,13 +92,13 @@ describe('no-raw-element', () => {
            </Panel>
          );
        }`,
-      raw,
+      raw
     );
 
     expect(found).toEqual([]);
   });
 
-  it('allows text, media and the sectioning elements no component is coming for', async () => {
+  it("allows text, media and the sectioning elements no component is coming for", async () => {
     const found = await lint(
       `export function W() {
          return (
@@ -109,30 +112,30 @@ describe('no-raw-element', () => {
            </address>
          );
        }`,
-      raw,
+      raw
     );
 
     expect(found).toEqual([]);
   });
 
-  it('keeps the third-party embeds a decision, not a default', async () => {
+  it("keeps the third-party embeds a decision, not a default", async () => {
     const found = await lint(
       `export function W() {
          return <iframe title="x" src="https://example.com" />;
        }`,
-      raw,
+      raw
     );
 
     expect(found).toHaveLength(1);
-    expect(found[0]?.message).toContain('<iframe> is a raw element');
+    expect(found[0]?.message).toContain("<iframe> is a raw element");
   });
 
-  it('takes additions from the allow option', async () => {
+  it("takes additions from the allow option", async () => {
     const found = await lint(
       `export function W() {
          return <marquee />;
        }`,
-      { 'ui/no-raw-element': ['error', { allow: ['marquee'] }] },
+      { "ui/no-raw-element": ["error", { allow: ["marquee"] }] }
     );
 
     expect(found).toEqual([]);

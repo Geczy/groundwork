@@ -1,10 +1,16 @@
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
-import { createRootRouteWithContext, HeadContent, Outlet } from '@tanstack/react-router';
-import { TanStackRouterDevtools } from '@tanstack/react-router-devtools';
-import { Toaster } from '@/components/toaster';
-import { ThemeToggle } from '@/features/theme';
-import type { RuntimeContext } from '@/lib/runtime';
-import { env } from '../lib/env';
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import {
+  createRootRouteWithContext,
+  HeadContent,
+  Outlet,
+} from "@tanstack/react-router";
+import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
+
+import { Toaster } from "@/components/toaster";
+import { ThemeToggle } from "@/features/theme";
+import type { RuntimeContext } from "@/lib/runtime";
+
+import { env } from "../lib/env";
 
 export const Route = createRootRouteWithContext<RuntimeContext>()({
   component: () => (

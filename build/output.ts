@@ -1,23 +1,25 @@
 import { readdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { extname, join } from 'node:path';
-import { type InspectColor, promisify, styleText } from 'node:util';
+import { promisify, styleText } from 'node:util';
+import type { InspectColor } from 'node:util';
 import { brotliCompress } from 'node:zlib';
-import sharp, { type Sharp } from 'sharp';
+import sharp from 'sharp';
+import type { Sharp } from 'sharp';
 import { optimize as optimizeSvg } from 'svgo';
 import type { Plugin } from 'vite';
 
-type Log = { info: (message: string) => void };
+interface Log { info: (message: string) => void }
 type Paint = (value: string) => string;
-type ImageRow = { after: number; before: number; name: string };
-type OutputRow = { br: number | null; name: string; raw: number };
+interface ImageRow { after: number; before: number; name: string }
+interface OutputRow { br: number | null; name: string; raw: number }
 type CompressedRow = OutputRow & { br: number };
-type Line = { after: number; before: number; name: string; tint: Paint };
-type Style = { gain: Paint; size: Paint };
-export type OutputLifecycle = {
+interface Line { after: number; before: number; name: string; tint: Paint }
+interface Style { gain: Paint; size: Paint }
+export interface OutputLifecycle {
   closeBundle: () => Promise<void>;
   configResolved: (config: { build: { outDir: string }; logger: Log }) => void;
   writeBundle: () => Promise<void>;
-};
+}
 
 const compress = promisify(brotliCompress);
 const MIN_BYTES = 1400;
@@ -65,7 +67,7 @@ const transfer = (item: OutputRow): number => item.br ?? item.raw;
 const kilobytes = (value: number): string => `${(value / 1000).toFixed(2)} kB`.padStart(9);
 const fileCount = (count: number): string => `${String(count)} file${count === 1 ? '' : 's'}`;
 
-function decorate(name: string, tint: Paint): string {
+const decorate = function decorate(name: string, tint: Paint): string {
   const cut = name.lastIndexOf('/') + 1;
   const directory = cut === 0 ? '' : dim(name.slice(0, cut));
   const base = name.slice(cut);
@@ -77,17 +79,17 @@ function decorate(name: string, tint: Paint): string {
   return directory + tint(base.slice(0, hash.index)) + dim(hash[0]) + tint(base.slice(end));
 }
 
-function percentage(before: number, after: number): string {
+const percentage = function percentage(before: number, after: number): string {
   const change = before === 0 ? 0 : Math.round(((after - before) / before) * 100);
   return `${String(change)}%`.padStart(5);
 }
 
-function row(label: string, before: number, after: number, style: Style): string {
+const row = function row(label: string, before: number, after: number, style: Style): string {
   const afterStyle = after < before ? style.gain : style.size;
   return `  ${label} ${style.size(kilobytes(before))} ${dim('→')} ${afterStyle(kilobytes(after))} ${style.size(percentage(before, after))}`;
 }
 
-function table(
+const table = function table(
   log: Log,
   title: string,
   note: string,
@@ -110,7 +112,7 @@ function table(
   log.info(row(bold(total.padEnd(width)), before, after, TOTAL));
 }
 
-function shrinkRaster(raw: Buffer, extension: string): Promise<Buffer> | null {
+const shrinkRaster = function shrinkRaster(raw: Buffer, extension: string): Promise<Buffer> | null {
   const encoder = encode.get(extension);
   if (encoder === undefined) {
     return null;
@@ -118,7 +120,7 @@ function shrinkRaster(raw: Buffer, extension: string): Promise<Buffer> | null {
   return encoder(sharp(raw).autoOrient()).toBuffer();
 }
 
-async function shrinkImage(outDir: string, name: string): Promise<ImageRow | null> {
+const shrinkImage = async function shrinkImage(outDir: string, name: string): Promise<ImageRow | null> {
   const path = join(outDir, name);
   const raw = await readFile(path);
   const optimized = name.endsWith('.svg')
@@ -132,7 +134,7 @@ async function shrinkImage(outDir: string, name: string): Promise<ImageRow | nul
   return { after: optimized.byteLength, before: raw.byteLength, name };
 }
 
-async function measureOutput(outDir: string, name: string): Promise<OutputRow | null> {
+const measureOutput = async function measureOutput(outDir: string, name: string): Promise<OutputRow | null> {
   const path = join(outDir, name);
   const info = await stat(path);
   if (!info.isFile()) {
@@ -146,7 +148,7 @@ async function measureOutput(outDir: string, name: string): Promise<OutputRow | 
   return { br: compressed.byteLength, name, raw: info.size };
 }
 
-function logImages(log: Log, outDir: string, rows: ReadonlyArray<ImageRow>): void {
+const logImages = function logImages(log: Log, outDir: string, rows: ReadonlyArray<ImageRow>): void {
   const lines = rows
     .toSorted((a, b) => b.after - a.after)
     .map((item) => ({
@@ -158,7 +160,7 @@ function logImages(log: Log, outDir: string, rows: ReadonlyArray<ImageRow>): voi
   table(log, 'images', `(${outDir}/)`, lines);
 }
 
-function logPrecompressed(log: Log, outDir: string, rows: ReadonlyArray<OutputRow>): void {
+const logPrecompressed = function logPrecompressed(log: Log, outDir: string, rows: ReadonlyArray<OutputRow>): void {
   const lines = rows
     .filter((item): item is CompressedRow => item.br !== null)
     .toSorted((a, b) => b.br - a.br)
@@ -171,7 +173,7 @@ function logPrecompressed(log: Log, outDir: string, rows: ReadonlyArray<OutputRo
   table(log, 'brotli', `(${outDir}/, ${String(MIN_BYTES)} bytes and up)`, lines);
 }
 
-function logTotal(log: Log, outDir: string, rows: ReadonlyArray<OutputRow>): void {
+const logTotal = function logTotal(log: Log, outDir: string, rows: ReadonlyArray<OutputRow>): void {
   const lines = [...Map.groupBy(rows, (item) => bucketOf(item.name))]
     .map(([bucket, group]) => ({
       after: sum(group, transfer),
@@ -183,7 +185,7 @@ function logTotal(log: Log, outDir: string, rows: ReadonlyArray<OutputRow>): voi
   table(log, `${outDir}/ total`, '', lines, rows.length);
 }
 
-export function createOutputLifecycle(): OutputLifecycle {
+export const createOutputLifecycle = function createOutputLifecycle(): OutputLifecycle {
   let outDir = 'dist';
   let log: Log | undefined;
   let images: Array<ImageRow> = [];
@@ -192,7 +194,7 @@ export function createOutputLifecycle(): OutputLifecycle {
     async closeBundle() {
       const names = await readdir(outDir, { recursive: true });
       const measured = await Promise.all(
-        names.filter((name) => !name.endsWith('.br')).map((name) => measureOutput(outDir, name)),
+        names.filter((name) => !name.endsWith('.br')).map( async (name) => await measureOutput(outDir, name)),
       );
       const rows = measured.filter((item) => item !== null);
       if (log === undefined) {
@@ -209,14 +211,14 @@ export function createOutputLifecycle(): OutputLifecycle {
     async writeBundle() {
       const names = await readdir(outDir, { recursive: true });
       const rows = await Promise.all(
-        names.filter((name) => IMAGES.test(name)).map((name) => shrinkImage(outDir, name)),
+        names.filter((name) => IMAGES.test(name)).map( async (name) => await shrinkImage(outDir, name)),
       );
       images = rows.filter((item) => item !== null);
     },
   };
 }
 
-export function output(): Plugin {
+export const output = function output(): Plugin {
   return {
     apply: 'build',
     enforce: 'post',

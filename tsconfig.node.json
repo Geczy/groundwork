@@ -9,11 +9,17 @@
     "emitDeclarationOnly": true,
     "outDir": "./node_modules/.tmp/tsconfig.node",
     "lib": ["ESNext"],
-    "types": ["bun"]
+    "types": ["bun"],
+    "strictNullChecks": true
   },
   // A glob, so a vitest.config.ts or playwright.config.ts is covered the day it appears.
   // `build/` is the Vite plugins vite.config.ts imports, `lint/` the local oxlint plugin,
   // tests included.
-  "include": ["*.config.ts", ".githooks/**/*.ts", "build/**/*.ts", "lint/**/*.ts"],
+  "include": [
+    "*.config.ts",
+    ".githooks/**/*.ts",
+    "build/**/*.ts",
+    "lint/**/*.ts"
+  ],
   "references": []
 }

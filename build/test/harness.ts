@@ -5,9 +5,9 @@ import { onTestFinished, vi } from 'vitest';
 import type { OutputLifecycle } from '../output.ts';
 
 /** Stands in for Vite's logger and keeps what a table printed. */
-export type Recorder = { info: (message: string) => void; lines: Array<string> };
+export interface Recorder { info: (message: string) => void; lines: Array<string> }
 
-export function recorder(): Recorder {
+export const recorder = function recorder(): Recorder {
   const lines: Array<string> = [];
   return {
     info: (msg) => {
@@ -19,7 +19,7 @@ export function recorder(): Recorder {
 
 // `styleText` reads the environment on every call, so pin it or a table asserts differently
 // under a TTY than in CI.
-export function useColor(on: boolean): void {
+export const useColor = function useColor(on: boolean): void {
   vi.stubEnv('NO_COLOR', on ? undefined : '1');
   vi.stubEnv('FORCE_COLOR', on ? '1' : undefined);
 }
@@ -34,19 +34,19 @@ export const stripAnsi = (s: string): string => s.replaceAll(ANSI, '');
  * Runs `configResolved` with the only two fields the lifecycle reads, then hands back the hooks
  * a test drives by hand. The production plugin wraps this same lifecycle.
  */
-export function start(lifecycle: OutputLifecycle, dir: string, log: Recorder): OutputLifecycle {
+export const start = function start(lifecycle: OutputLifecycle, dir: string, log: Recorder): OutputLifecycle {
   lifecycle.configResolved({ build: { outDir: dir }, logger: log });
   return lifecycle;
 }
 
 /** An empty stand-in for `dist/`, removed when the test ends. */
-export async function distDir(): Promise<string> {
+export const distDir = async function distDir(): Promise<string> {
   const dir = await mkdtemp(join(tmpdir(), 'build-'));
-  onTestFinished(() => rm(dir, { force: true, recursive: true }));
+  onTestFinished( async () => await rm(dir, { force: true, recursive: true }));
   return dir;
 }
 
-export async function put(dir: string, name: string, data: Buffer | string): Promise<string> {
+export const put = async function put(dir: string, name: string, data: Buffer | string): Promise<string> {
   const path = join(dir, name);
   await mkdir(dirname(path), { recursive: true });
   await writeFile(path, data);

@@ -1,11 +1,13 @@
 /** Enforces the feature dependency direction documented in AGENTS.md. */
 
-import { basename } from 'node:path';
-import { nodeStringValue, type BaseContext, type Node, type Rule } from './types.ts';
+import { basename } from "node:path";
+
+import { nodeStringValue } from "./types.ts";
+import type { BaseContext, Node, Rule } from "./types.ts";
 
 type Context = BaseContext;
 
-type Role = 'schema' | 'state' | 'transport' | 'query' | 'rendering' | 'index';
+type Role = "schema" | "state" | "transport" | "query" | "rendering" | "index";
 
 const RANK = {
   index: 5,
@@ -17,57 +19,68 @@ const RANK = {
 } satisfies Record<Role, number>;
 
 const PACKAGE_BANS = new Map<Role, ReadonlySet<string>>([
-  ['schema', new Set(['react', 'jotai', '@tanstack/react-query', '@tanstack/react-form'])],
-  ['state', new Set(['react', '@tanstack/react-query'])],
-  ['transport', new Set(['react', 'jotai', '@tanstack/react-query'])],
+  [
+    "schema",
+    new Set([
+      "react",
+      "jotai",
+      "@tanstack/react-query",
+      "@tanstack/react-form",
+    ]),
+  ],
+  ["state", new Set(["react", "@tanstack/react-query"])],
+  ["transport", new Set(["react", "jotai", "@tanstack/react-query"])],
 ]);
 
-function roleOfFile(filename: string): Role | undefined {
+const roleOfFile = function roleOfFile(filename: string): Role | undefined {
   const name = basename(filename);
-  if (name.includes('.test.') || !filename.replaceAll('\\', '/').includes('/src/features/')) {
+  if (
+    name.includes(".test.") ||
+    !filename.replaceAll("\\", "/").includes("/src/features/")
+  ) {
     return undefined;
   }
-  if (name === 'index.ts') {
-    return 'index';
+  if (name === "index.ts") {
+    return "index";
   }
-  if (name.endsWith('.schema.ts')) {
-    return 'schema';
+  if (name.endsWith(".schema.ts")) {
+    return "schema";
   }
-  if (name.endsWith('.state.ts')) {
-    return 'state';
+  if (name.endsWith(".state.ts")) {
+    return "state";
   }
-  if (name.endsWith('.api.ts')) {
-    return 'transport';
+  if (name.endsWith(".api.ts")) {
+    return "transport";
   }
-  if (name.endsWith('.queries.ts')) {
-    return 'query';
+  if (name.endsWith(".queries.ts")) {
+    return "query";
   }
-  if (name.endsWith('.tsx')) {
-    return 'rendering';
+  if (name.endsWith(".tsx")) {
+    return "rendering";
   }
   return undefined;
-}
+};
 
-function roleOfImport(specifier: string): Role {
+const roleOfImport = function roleOfImport(specifier: string): Role {
   if (/\.schema(?:\.ts)?$/u.test(specifier)) {
-    return 'schema';
+    return "schema";
   }
   if (/\.state(?:\.ts)?$/u.test(specifier)) {
-    return 'state';
+    return "state";
   }
   if (/\.api(?:\.ts)?$/u.test(specifier)) {
-    return 'transport';
+    return "transport";
   }
   if (/\.queries(?:\.ts)?$/u.test(specifier)) {
-    return 'query';
+    return "query";
   }
   if (/\/index(?:\.ts)?$/u.test(specifier)) {
-    return 'index';
+    return "index";
   }
-  return 'rendering';
-}
+  return "rendering";
+};
 
-function importedNames(node: Node): Set<string> {
+const importedNames = function importedNames(node: Node): Set<string> {
   const names = new Set<string>();
   for (const specifier of node.specifiers ?? []) {
     const name = specifier.imported?.name;
@@ -76,27 +89,41 @@ function importedNames(node: Node): Set<string> {
     }
   }
   return names;
-}
+};
 
-function reportPackage(context: Context, node: Node, role: Role, specifier: string): void {
+const reportPackage = function reportPackage(
+  context: Context,
+  node: Node,
+  role: Role,
+  specifier: string
+): void {
   context.report({
     message:
       `The ${role} module cannot import ${specifier}. Keep the feature dependency direction ` +
-      'schema <- state <- transport <- query <- rendering <- index.',
+      "schema <- state <- transport <- query <- rendering <- index.",
     node,
   });
-}
+};
 
-function reportDirection(context: Context, node: Node, from: Role, to: Role): void {
+const reportDirection = function reportDirection(
+  context: Context,
+  node: Node,
+  from: Role,
+  to: Role
+): void {
   context.report({
     message:
       `The ${from} module cannot import a ${to} module. Dependencies point one way: ` +
-      'schema <- state <- transport <- query <- rendering <- index.',
+      "schema <- state <- transport <- query <- rendering <- index.",
     node,
   });
-}
+};
 
-function checkImport(context: Context, node: Node, role: Role): void {
+const checkImport = function checkImport(
+  context: Context,
+  node: Node,
+  role: Role
+): void {
   const value = nodeStringValue(node.source);
   if (value === undefined) {
     return;
@@ -108,27 +135,29 @@ function checkImport(context: Context, node: Node, role: Role): void {
   }
 
   if (
-    role === 'rendering' &&
-    value === '@tanstack/react-query' &&
-    [...importedNames(node)].some((name) => name === 'useMutation' || name === 'useQueryClient')
+    role === "rendering" &&
+    value === "@tanstack/react-query" &&
+    [...importedNames(node)].some(
+      (name) => name === "useMutation" || name === "useQueryClient"
+    )
   ) {
     context.report({
       message:
-        'Rendering modules use named mutation hooks from the query module; they do not own ' +
-        'mutations or query invalidation.',
+        "Rendering modules use named mutation hooks from the query module; they do not own " +
+        "mutations or query invalidation.",
       node,
     });
     return;
   }
 
-  if (!value.startsWith('.')) {
+  if (!value.startsWith(".")) {
     return;
   }
   const target = roleOfImport(value);
   if (RANK[target] > RANK[role]) {
     reportDirection(context, node, role, target);
   }
-}
+};
 
 const dependencyDirection: Rule<Context> = {
   create(context) {
@@ -143,10 +172,14 @@ const dependencyDirection: Rule<Context> = {
       },
     };
   },
-  meta: { docs: { description: 'Enforce the dependency direction inside feature modules' } },
+  meta: {
+    docs: {
+      description: "Enforce the dependency direction inside feature modules",
+    },
+  },
 };
 
 export default {
-  meta: { name: 'feature' },
-  rules: { 'dependency-direction': dependencyDirection },
+  meta: { name: "feature" },
+  rules: { "dependency-direction": dependencyDirection },
 };

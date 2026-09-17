@@ -1,23 +1,26 @@
-import { QueryClient } from '@tanstack/react-query';
-import { createMemoryHistory } from '@tanstack/react-router';
-import { render, type RenderOptions, type RenderResult } from '@testing-library/react';
-import { createStore } from 'jotai';
-import type { ReactElement, ReactNode } from 'react';
-import {
-  createAppRuntime,
-  RuntimeApp,
-  RuntimeScope,
-  type AppRuntime,
-  type RuntimeStore,
-} from '@/lib/runtime';
+import type { QueryClient } from "@tanstack/react-query";
+import { createMemoryHistory } from "@tanstack/react-router";
+import { render } from "@testing-library/react";
+import type { RenderOptions, RenderResult } from "@testing-library/react";
+import { createStore } from "jotai";
+import type { ReactElement, ReactNode } from "react";
 
-type Providers = { queryClient?: QueryClient | undefined; store?: RuntimeStore };
+import { createAppRuntime, RuntimeApp, RuntimeScope } from "@/lib/runtime";
+import type { AppRuntime, RuntimeStore } from "@/lib/runtime";
 
-type Options = Omit<RenderOptions, 'wrapper'> & Providers & { path?: string };
+interface Providers {
+  queryClient?: QueryClient | undefined;
+  store?: RuntimeStore;
+}
+
+type Options = Omit<RenderOptions, "wrapper"> & Providers & { path?: string };
 
 type Rendered = RenderResult & AppRuntime & { mutationErrors: Array<Error> };
 
-function createTestRuntime(path: string, providers: Providers): RenderedRuntime {
+const createTestRuntime = function createTestRuntime(
+  path: string,
+  providers: Providers
+): RenderedRuntime {
   const mutationErrors: Array<Error> = [];
   const runtime = createAppRuntime({
     history: createMemoryHistory({ initialEntries: [path] }),
@@ -29,9 +32,12 @@ function createTestRuntime(path: string, providers: Providers): RenderedRuntime 
     store: providers.store,
   });
   return { mutationErrors, runtime };
-}
+};
 
-type RenderedRuntime = { mutationErrors: Array<Error>; runtime: AppRuntime };
+interface RenderedRuntime {
+  mutationErrors: Array<Error>;
+  runtime: AppRuntime;
+}
 
 /**
  * Renders `ui` in the same provider stack as src/main.tsx, over a store, a QueryClient and a
@@ -45,18 +51,21 @@ type RenderedRuntime = { mutationErrors: Array<Error>; runtime: AppRuntime };
  * State the URL owns is not seeded here: it reaches a component as a prop, so a test passes it
  * directly. `path` only sets where the router thinks it is, for components that read the location.
  */
-export function renderWithProviders(
+export const renderWithProviders = function renderWithProviders(
   ui: ReactElement,
-  { path = '/', queryClient, store = createStore(), ...options }: Options = {},
+  { path = "/", queryClient, store = createStore(), ...options }: Options = {}
 ): Rendered {
-  const { mutationErrors, runtime } = createTestRuntime(path, { queryClient, store });
+  const { mutationErrors, runtime } = createTestRuntime(path, {
+    queryClient,
+    store,
+  });
 
   const wrapper = ({ children }: { children: ReactNode }) => (
     <RuntimeScope runtime={runtime}>{children}</RuntimeScope>
   );
 
   return { ...runtime, mutationErrors, ...render(ui, { wrapper, ...options }) };
-}
+};
 
 /**
  * Renders the app's real route tree at `path`, which is what a test needs when the thing under
@@ -67,15 +76,18 @@ export function renderWithProviders(
  *     const { router } = renderRoute('/settings?tab=profile');
  *     expect(router.state.location.searchStr).toBe('?tab=profile');
  */
-export function renderRoute(
+export const renderRoute = function renderRoute(
   path: string,
-  { queryClient, store = createStore() }: Providers = {},
+  { queryClient, store = createStore() }: Providers = {}
 ): Rendered {
-  const { mutationErrors, runtime } = createTestRuntime(path, { queryClient, store });
+  const { mutationErrors, runtime } = createTestRuntime(path, {
+    queryClient,
+    store,
+  });
 
   return {
     ...runtime,
     mutationErrors,
     ...render(<RuntimeApp runtime={runtime} />),
   };
-}
+};

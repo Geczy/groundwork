@@ -1,7 +1,8 @@
-import type { JSX, ReactNode } from 'react';
-import { Link, useRouter } from '@tanstack/react-router';
-import { TriangleAlertIcon } from 'lucide-react';
-import { Button, buttonVariants } from '@/components/ui/button';
+import { Link, useRouter } from "@tanstack/react-router";
+import { TriangleAlertIcon } from "lucide-react";
+import type { JSX, ReactNode } from "react";
+
+import { Button, buttonVariants } from "@/components/ui/button";
 
 /**
  * The three router-level fallbacks, named in `src/lib/runtime.tsx` as `defaultPendingComponent`,
@@ -12,25 +13,21 @@ import { Button, buttonVariants } from '@/components/ui/button';
  * sees and how retry navigation behaves.
  */
 
-function Frame({ children }: { children: ReactNode }): JSX.Element {
-  return (
-    <div className="flex min-h-dvh flex-col items-center justify-center gap-4 p-8 text-center">
-      {children}
-    </div>
-  );
-}
+const Frame = ({ children }: { children: ReactNode }): JSX.Element => (
+  <div className="flex min-h-dvh flex-col items-center justify-center gap-4 p-8 text-center">
+    {children}
+  </div>
+);
 
-export function RoutePending(): JSX.Element {
-  return (
-    <Frame>
-      {/* Not a spinner: the router only shows this after its own delay, so by the time anyone
+export const RoutePending = (): JSX.Element => (
+  <Frame>
+    {/* Not a spinner: the router only shows this after its own delay, so by the time anyone
           sees it the wait is long enough to deserve words. */}
-      <output className="text-sm text-muted-foreground">Loading...</output>
-    </Frame>
-  );
-}
+    <output className="text-muted-foreground text-sm">Loading...</output>
+  </Frame>
+);
 
-export function RouteError({ error }: { error: Error }): JSX.Element {
+export const RouteError = ({ error }: { error: Error }): JSX.Element => {
   // `invalidate()` re-runs the loaders for the matched routes, which is the retry that means
   // something here. Reloading the page would also lose whatever else is on screen.
   const router = useRouter();
@@ -38,27 +35,35 @@ export function RouteError({ error }: { error: Error }): JSX.Element {
   return (
     <Frame>
       <div className="flex flex-col items-center gap-2" role="alert">
-        <TriangleAlertIcon aria-hidden="true" className="size-5 text-destructive" />
+        <TriangleAlertIcon
+          aria-hidden="true"
+          className="text-destructive size-5"
+        />
         <h1 className="text-2xl leading-none">Something went wrong.</h1>
-        <p className="max-w-prose text-sm text-muted-foreground">{error.message}</p>
+        <p className="text-muted-foreground max-w-prose text-sm">
+          {error.message}
+        </p>
       </div>
-      <Button onClick={() => void router.invalidate()} size="sm" type="button" variant="outline">
+      <Button
+        onClick={() => void router.invalidate()}
+        size="sm"
+        type="button"
+        variant="outline"
+      >
         Try again
       </Button>
     </Frame>
   );
-}
+};
 
-export function NotFound(): JSX.Element {
-  return (
-    <Frame>
-      <h1 className="text-2xl leading-none">Not found.</h1>
-      <p className="max-w-prose text-sm text-muted-foreground">
-        That address does not match anything here.
-      </p>
-      <Link className={buttonVariants({ size: 'sm', variant: 'outline' })} to="/">
-        Go home
-      </Link>
-    </Frame>
-  );
-}
+export const NotFound = (): JSX.Element => (
+  <Frame>
+    <h1 className="text-2xl leading-none">Not found.</h1>
+    <p className="text-muted-foreground max-w-prose text-sm">
+      That address does not match anything here.
+    </p>
+    <Link className={buttonVariants({ size: "sm", variant: "outline" })} to="/">
+      Go home
+    </Link>
+  </Frame>
+);

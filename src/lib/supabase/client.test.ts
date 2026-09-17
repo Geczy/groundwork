@@ -1,27 +1,30 @@
-import { describe, expect, it } from 'vitest';
-import { createSupabaseAccessor } from './client';
+import { describe, expect, it } from "vitest";
 
-describe('createSupabaseAccessor', () => {
-  it('fails at the first database use when this reusable starter is not connected yet', () => {
-    const getClient = createSupabaseAccessor(null, () => ({ state: 'connected' }));
+import { createSupabaseAccessor } from "./client";
+
+describe("createSupabaseAccessor", () => {
+  it("fails at the first database use when this reusable starter is not connected yet", () => {
+    const getClient = createSupabaseAccessor(null, () => ({
+      state: "connected",
+    }));
 
     expect(getClient).toThrow(/VITE_SUPABASE_URL/u);
   });
 
-  it('constructs lazily and reuses one browser client', () => {
+  it("constructs lazily and reuses one browser client", () => {
     let nextIdentity = 0;
     const getClient = createSupabaseAccessor(
-      { publishableKey: 'publishable-key', url: 'https://project.supabase.co' },
+      { publishableKey: "publishable-key", url: "https://project.supabase.co" },
       (connection) => ({
         identity: ++nextIdentity,
         url: connection.url,
-      }),
+      })
     );
 
     const first = getClient();
     const second = getClient();
 
     expect(first).toBe(second);
-    expect(first).toEqual({ identity: 1, url: 'https://project.supabase.co' });
+    expect(first).toEqual({ identity: 1, url: "https://project.supabase.co" });
   });
 });

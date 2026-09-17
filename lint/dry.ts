@@ -6,7 +6,7 @@
  * rather than anything semantic.
  */
 
-import type { BaseContext, Node, Rule, Token } from './types.ts';
+import type { BaseContext, Node, Rule, Token } from "./types.ts";
 
 type Options = { minTokens?: number } | undefined;
 
@@ -27,17 +27,17 @@ const DEFAULT_MIN_TOKENS = 30;
  * still matches. Names are part of the signature: two bodies that differ in what they operate
  * on are two implementations, and merging them is the refactor, not the finding.
  */
-function signature(tokens: Array<Token>): string {
-  return tokens.map((token) => token.value).join(' ');
-}
+const signature = function signature(tokens: Array<Token>): string {
+  return tokens.map((token) => token.value).join(" ");
+};
 
 const noIdenticalFunctions: Rule<Context> = {
   create(context) {
     const minTokens = context.options[0]?.minTokens ?? DEFAULT_MIN_TOKENS;
     const firstSeenAt = new Map<string, number>();
 
-    function check(node: Node): void {
-      const body = node.body;
+    const check = function check(node: Node): void {
+      const { body } = node;
       if (body === undefined) {
         return;
       }
@@ -57,10 +57,10 @@ const noIdenticalFunctions: Rule<Context> = {
       context.report({
         message:
           `This body is identical to the one on line ${first}. Two copies of one implementation ` +
-          'drift, and then neither is the answer: keep one and pass what differs as an argument.',
+          "drift, and then neither is the answer: keep one and pass what differs as an argument.",
         node,
       });
-    }
+    };
 
     return {
       ArrowFunctionExpression: check,
@@ -69,18 +69,20 @@ const noIdenticalFunctions: Rule<Context> = {
     };
   },
   meta: {
-    docs: { description: 'Disallow two functions in one file with identical bodies' },
+    docs: {
+      description: "Disallow two functions in one file with identical bodies",
+    },
     schema: [
       {
         additionalProperties: false,
-        properties: { minTokens: { type: 'number' } },
-        type: 'object',
+        properties: { minTokens: { type: "number" } },
+        type: "object",
       },
     ],
   },
 };
 
 export default {
-  meta: { name: 'dry' },
-  rules: { 'no-identical-functions': noIdenticalFunctions },
+  meta: { name: "dry" },
+  rules: { "no-identical-functions": noIdenticalFunctions },
 };

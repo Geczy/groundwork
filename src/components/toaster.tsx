@@ -1,5 +1,5 @@
-import type { JSX } from 'react';
-import { Toaster as Sonner } from 'sonner';
+import type { JSX } from "react";
+import { Toaster as Sonner } from "sonner";
 
 /**
  * The app's one notification surface. Mounted once in `__root.tsx`; everything else reaches it
@@ -10,6 +10,4 @@ import { Toaster as Sonner } from 'sonner';
  * comes from the `[data-sonner-toaster]` block in `src/styles/index.css` instead, so the toast
  * follows the same tokens as everything else and needs no theme prop at all.
  */
-export function Toaster(): JSX.Element {
-  return <Sonner position="bottom-right" />;
-}
+export const Toaster = (): JSX.Element => <Sonner position="bottom-right" />;

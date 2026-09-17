@@ -1,7 +1,8 @@
 import { readFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { brotliDecompressSync } from 'node:zlib';
-import sharp, { type Sharp } from 'sharp';
+import sharp from 'sharp';
+import type { Sharp } from 'sharp';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { build as viteBuild } from 'vite';
 import { createOutputLifecycle, output } from './output.ts';
@@ -17,8 +18,8 @@ afterEach(() => {
 
 const text = (bytes: number): string => 'const value = 1;\n'.repeat(bytes).slice(0, bytes);
 
-const exists = (path: string): Promise<boolean> =>
-  stat(path).then(
+const exists =  async (path: string): Promise<boolean> =>
+  await stat(path).then(
     () => true,
     () => false,
   );
@@ -41,7 +42,7 @@ const SVG = `<?xml version="1.0" encoding="UTF-8"?>
 </svg>
 `;
 
-async function run(dir: string): Promise<string> {
+const run = async function run(dir: string): Promise<string> {
   const log = recorder();
   const hooks = start(createOutputLifecycle(), dir, log);
   await hooks.writeBundle();
@@ -74,11 +75,11 @@ describe('build output Vite interface', () => {
   });
 
   it.each([
-    ['photo.png', (): Promise<Buffer> => noise().png({ compressionLevel: 0 }).toBuffer()],
-    ['photo.jpg', (): Promise<Buffer> => noise().jpeg({ quality: 100 }).toBuffer()],
-    ['photo.jpeg', (): Promise<Buffer> => noise().jpeg({ quality: 100 }).toBuffer()],
-    ['photo.webp', (): Promise<Buffer> => noise().webp({ quality: 100 }).toBuffer()],
-    ['photo.avif', (): Promise<Buffer> => noise().avif({ quality: 90 }).toBuffer()],
+    ['photo.png',  async (): Promise<Buffer> => await noise().png({ compressionLevel: 0 }).toBuffer()],
+    ['photo.jpg',  async (): Promise<Buffer> => await noise().jpeg({ quality: 100 }).toBuffer()],
+    ['photo.jpeg',  async (): Promise<Buffer> => await noise().jpeg({ quality: 100 }).toBuffer()],
+    ['photo.webp',  async (): Promise<Buffer> => await noise().webp({ quality: 100 }).toBuffer()],
+    ['photo.avif',  async (): Promise<Buffer> => await noise().avif({ quality: 90 }).toBuffer()],
   ])('re-encodes %s downwards', async (name, encode) => {
     const dir = await distDir();
     const raw = await encode();

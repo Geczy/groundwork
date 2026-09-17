@@ -2,25 +2,24 @@ import { chmod, mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/pr
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { onTestFinished } from 'vitest';
-import { describe, expect, it } from 'vitest';
+import { onTestFinished,describe,expect,it } from 'vitest';
 
 const repo = resolve(import.meta.dirname, '..');
 
-async function workspace(): Promise<string> {
+const workspace = async function workspace(): Promise<string> {
   const root = await mkdtemp(join(tmpdir(), 'react-boilerplate-supabase-'));
-  onTestFinished(() => rm(root, { force: true, recursive: true }));
+  onTestFinished( async () => await rm(root, { force: true, recursive: true }));
   await mkdir(join(root, 'supabase', 'migrations'), { recursive: true });
   await mkdir(join(root, 'src', 'lib', 'supabase'), { recursive: true });
   return root;
 }
 
-async function executable(path: string, body: string): Promise<void> {
+const executable = async function executable(path: string, body: string): Promise<void> {
   await writeFile(path, `#!/usr/bin/env bash\nset -euo pipefail\n${body}\n`);
   await chmod(path, 0o755);
 }
 
-function run(
+const run = function run(
   script: string,
   root: string,
   bin: string,
@@ -39,7 +38,7 @@ function run(
   });
 }
 
-async function writeProjectConfig(root: string, schema = 'workout_log'): Promise<void> {
+const writeProjectConfig = async function writeProjectConfig(root: string, schema = 'workout_log'): Promise<void> {
   await writeFile(
     join(root, 'supabase', 'project.env'),
     `SUPABASE_SCHEMA=${schema}\nSUPABASE_TYPES_SOURCE=self_hosted\n`,

@@ -1,6 +1,6 @@
-export { getSupabase } from './client';
-export type { SupabaseClient } from './client';
-export { databaseSchema } from './database.types';
+export { getSupabase } from "./client";
+export type { SupabaseClient } from "./client";
+export { databaseSchema } from "./database.types";
 export type {
   Database,
   Enums,
@@ -14,4 +14,4 @@ export type {
   TablesUpdate,
   ViewName,
   Views,
-} from './database.types';
+} from "./database.types";

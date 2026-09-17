@@ -9,9 +9,10 @@
  * whether or not a component for it exists yet.
  */
 
-import { readdirSync } from 'node:fs';
-import { join } from 'node:path';
-import type { BaseContext, Node, Rule } from './types.ts';
+import { readdirSync } from "node:fs";
+import { join } from "node:path";
+
+import type { BaseContext, Node, Rule } from "./types.ts";
 
 type Options = { allow?: Array<string> } | undefined;
 
@@ -28,111 +29,111 @@ type Context = BaseContext & { options: ReadonlyArray<Options> };
  * made, so reaching for one costs a disable comment saying what it loads and why.
  */
 const ALLOWED = new Set([
-  'div',
-  'span',
-  'section',
-  'article',
-  'header',
-  'footer',
-  'main',
-  'nav',
-  'aside',
-  'address',
-  'hgroup',
-  'search',
-  'figure',
-  'figcaption',
+  "div",
+  "span",
+  "section",
+  "article",
+  "header",
+  "footer",
+  "main",
+  "nav",
+  "aside",
+  "address",
+  "hgroup",
+  "search",
+  "figure",
+  "figcaption",
 
-  'h1',
-  'h2',
-  'h3',
-  'h4',
-  'h5',
-  'h6',
-  'p',
-  'strong',
-  'em',
-  'b',
-  'i',
-  'u',
-  's',
-  'small',
-  'code',
-  'pre',
-  'samp',
-  'kbd',
-  'var',
-  'blockquote',
-  'q',
-  'cite',
-  'abbr',
-  'dfn',
-  'data',
-  'time',
-  'mark',
-  'sub',
-  'sup',
-  'del',
-  'ins',
-  'br',
-  'wbr',
+  "h1",
+  "h2",
+  "h3",
+  "h4",
+  "h5",
+  "h6",
+  "p",
+  "strong",
+  "em",
+  "b",
+  "i",
+  "u",
+  "s",
+  "small",
+  "code",
+  "pre",
+  "samp",
+  "kbd",
+  "var",
+  "blockquote",
+  "q",
+  "cite",
+  "abbr",
+  "dfn",
+  "data",
+  "time",
+  "mark",
+  "sub",
+  "sup",
+  "del",
+  "ins",
+  "br",
+  "wbr",
   // Bidirectional text and ruby annotations: typography the browser owns outright.
-  'bdi',
-  'bdo',
-  'ruby',
-  'rp',
-  'rt',
+  "bdi",
+  "bdo",
+  "ruby",
+  "rp",
+  "rt",
 
-  'ul',
-  'ol',
-  'li',
-  'menu',
-  'dl',
-  'dt',
-  'dd',
+  "ul",
+  "ol",
+  "li",
+  "menu",
+  "dl",
+  "dt",
+  "dd",
 
   // A <form> is a submit boundary, a <fieldset> and its <legend> are the only way to name a
   // group of controls, and an <output> is a live region. None of them is a control itself.
-  'form',
-  'fieldset',
-  'legend',
-  'output',
+  "form",
+  "fieldset",
+  "legend",
+  "output",
 
   // The browser's own player chrome is not something a design system replaces; a component
   // that wraps one still renders one of these underneath.
-  'img',
-  'picture',
-  'source',
-  'audio',
-  'video',
-  'track',
-  'canvas',
-  'area',
-  'map',
-  'math',
+  "img",
+  "picture",
+  "source",
+  "audio",
+  "video",
+  "track",
+  "canvas",
+  "area",
+  "map",
+  "math",
 
-  'svg',
-  'path',
-  'circle',
-  'ellipse',
-  'rect',
-  'line',
-  'polyline',
-  'polygon',
-  'g',
-  'defs',
-  'use',
-  'symbol',
-  'title',
-  'desc',
-  'clipPath',
-  'mask',
-  'linearGradient',
-  'radialGradient',
-  'stop',
-  'filter',
-  'text',
-  'tspan',
+  "svg",
+  "path",
+  "circle",
+  "ellipse",
+  "rect",
+  "line",
+  "polyline",
+  "polygon",
+  "g",
+  "defs",
+  "use",
+  "symbol",
+  "title",
+  "desc",
+  "clipPath",
+  "mask",
+  "linearGradient",
+  "radialGradient",
+  "stop",
+  "filter",
+  "text",
+  "tspan",
 ]);
 
 /**
@@ -141,19 +142,22 @@ const ALLOWED = new Set([
  * so an entry going stale costs a component name rather than a missed finding.
  */
 const OWNERS = new Map([
-  ['hr', { file: 'separator', name: 'Separator' }],
-  ['tr', { file: 'table', name: 'TableRow' }],
-  ['td', { file: 'table', name: 'TableCell' }],
-  ['th', { file: 'table', name: 'TableHead' }],
-  ['thead', { file: 'table', name: 'TableHeader' }],
-  ['tbody', { file: 'table', name: 'TableBody' }],
-  ['tfoot', { file: 'table', name: 'TableFooter' }],
-  ['caption', { file: 'table', name: 'TableCaption' }],
+  ["hr", { file: "separator", name: "Separator" }],
+  ["tr", { file: "table", name: "TableRow" }],
+  ["td", { file: "table", name: "TableCell" }],
+  ["th", { file: "table", name: "TableHead" }],
+  ["thead", { file: "table", name: "TableHeader" }],
+  ["tbody", { file: "table", name: "TableBody" }],
+  ["tfoot", { file: "table", name: "TableFooter" }],
+  ["caption", { file: "table", name: "TableCaption" }],
 ]);
 
 /** The ones no design system supplies, because something else already owns them. */
 const ELSEWHERE = new Map([
-  ['a', '`Link` from @tanstack/react-router, which keeps navigation client-side'],
+  [
+    "a",
+    "`Link` from @tanstack/react-router, which keeps navigation client-side",
+  ],
 ]);
 
 /**
@@ -162,18 +166,24 @@ const ELSEWHERE = new Map([
  * message depends on this: a directory that cannot be read costs a component name, never a
  * missed finding.
  */
-function readPrimitives(): Set<string> {
+const readPrimitives = function readPrimitives(): Set<string> {
   try {
-    const files = readdirSync(join(import.meta.dirname, '..', 'src', 'components', 'ui'));
-    return new Set(files.filter((file) => file.endsWith('.tsx')).map((file) => file.slice(0, -4)));
+    const files = readdirSync(
+      join(import.meta.dirname, "..", "src", "components", "ui")
+    );
+    return new Set(
+      files
+        .filter((file) => file.endsWith(".tsx"))
+        .map((file) => file.slice(0, -4))
+    );
   } catch {
     return new Set();
   }
-}
+};
 
 const PRIMITIVES = readPrimitives();
 
-function advise(tag: string): string {
+const advise = function advise(tag: string): string {
   const elsewhere = ELSEWHERE.get(tag);
   if (elsewhere !== undefined) {
     return `Use ${elsewhere}.`;
@@ -188,11 +198,11 @@ function advise(tag: string): string {
   }
 
   return (
-    'Nothing in src/components/ui renders one yet: add the primitive with ' +
+    "Nothing in src/components/ui renders one yet: add the primitive with " +
     `\`bunx shadcn@latest add ${owner.file}\`, or if it is structure the design system will ` +
-    'never own, add it to ALLOWED in lint/ui.ts with a reason.'
+    "never own, add it to ALLOWED in lint/ui.ts with a reason."
   );
-}
+};
 
 const noRawElement: Rule<Context> = {
   create(context) {
@@ -203,7 +213,7 @@ const noRawElement: Rule<Context> = {
       // closing tag a JSXClosingElement, and `<form.Field>` a JSXMemberExpression, so all
       // three arrive here already excluded.
       JSXIdentifier: (node: Node) => {
-        if (node.parent?.type !== 'JSXOpeningElement') {
+        if (node.parent?.type !== "JSXOpeningElement") {
           return;
         }
 
@@ -213,23 +223,28 @@ const noRawElement: Rule<Context> = {
           return;
         }
 
-        context.report({ message: `<${tag}> is a raw element. ${advise(tag)}`, node });
+        context.report({
+          message: `<${tag}> is a raw element. ${advise(tag)}`,
+          node,
+        });
       },
     };
   },
   meta: {
-    docs: { description: 'Disallow raw HTML controls in favour of the design system' },
+    docs: {
+      description: "Disallow raw HTML controls in favour of the design system",
+    },
     schema: [
       {
         additionalProperties: false,
-        properties: { allow: { items: { type: 'string' }, type: 'array' } },
-        type: 'object',
+        properties: { allow: { items: { type: "string" }, type: "array" } },
+        type: "object",
       },
     ],
   },
 };
 
 export default {
-  meta: { name: 'ui' },
-  rules: { 'no-raw-element': noRawElement },
+  meta: { name: "ui" },
+  rules: { "no-raw-element": noRawElement },
 };
