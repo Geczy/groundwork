@@ -1,22 +1,23 @@
 import { chmod, mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { onTestFinished,describe,expect,it } from 'vitest';
 
-const repo = resolve(import.meta.dirname, '..');
+const repo = path.resolve(import.meta.dirname, '..');
 
 const workspace = async function workspace(): Promise<string> {
-  const root = await mkdtemp(join(tmpdir(), 'react-boilerplate-supabase-'));
+  const root = await mkdtemp(path.join(tmpdir(), 'react-boilerplate-supabase-'));
   onTestFinished( async () => await rm(root, { force: true, recursive: true }));
-  await mkdir(join(root, 'supabase', 'migrations'), { recursive: true });
-  await mkdir(join(root, 'src', 'lib', 'supabase'), { recursive: true });
+  await mkdir(path.join(root, 'supabase', 'migrations'), { recursive: true });
+  await mkdir(path.join(root, 'src', 'lib', 'supabase'), { recursive: true });
+
   return root;
 }
 
-const executable = async function executable(path: string, body: string): Promise<void> {
-  await writeFile(path, `#!/usr/bin/env bash\nset -euo pipefail\n${body}\n`);
-  await chmod(path, 0o755);
+const executable = async function executable(file: string, body: string): Promise<void> {
+  await writeFile(file, `#!/usr/bin/env bash\nset -euo pipefail\n${body}\n`);
+  await chmod(file, 0o755);
 }
 
 const run = function run(
@@ -26,7 +27,7 @@ const run = function run(
   extraEnvironment = {},
   args: Array<string> = [],
 ) {
-  return spawnSync('bash', [join(repo, 'scripts', script), ...args], {
+  return spawnSync(path.join(repo, 'scripts', script), args, {
     cwd: root,
     encoding: 'utf8',
     env: {
@@ -40,11 +41,11 @@ const run = function run(
 
 const writeProjectConfig = async function writeProjectConfig(root: string, schema = 'workout_log'): Promise<void> {
   await writeFile(
-    join(root, 'supabase', 'project.env'),
+    path.join(root, 'supabase', 'project.env'),
     `SUPABASE_SCHEMA=${schema}\nSUPABASE_TYPES_SOURCE=self_hosted\n`,
   );
   await writeFile(
-    join(root, 'src', 'lib', 'supabase', 'database-schema.generated.ts'),
+    path.join(root, 'src', 'lib', 'supabase', 'database-schema.generated.ts'),
     `export const databaseSchema = '${schema}';\n`,
   );
 }
@@ -52,18 +53,18 @@ const writeProjectConfig = async function writeProjectConfig(root: string, schem
 describe('Supabase setup scripts', () => {
   it('refuses database work while the starter still has its placeholder schema', async () => {
     const root = await workspace();
-    const bin = join(root, 'bin');
-    const migration = join(root, 'supabase', 'migrations', '001.sql');
+    const bin = path.join(root, 'bin');
+    const migration = path.join(root, 'supabase', 'migrations', '001.sql');
     await mkdir(bin);
     await writeProjectConfig(root, 'replace_me');
     await writeFile(migration, 'select 42;\n');
-    await executable(join(bin, 'docker'), 'exit 1');
-    await executable(join(bin, 'sudo'), 'exit 1');
+    await executable(path.join(bin, 'docker'), 'exit 1');
+    await executable(path.join(bin, 'sudo'), 'exit 1');
     await executable(
-      join(bin, 'getent'),
-      'if [[ "${1:-}" == ahosts ]]; then echo "127.0.1.1 STREAM alex"; fi',
+      path.join(bin, 'getent'),
+      'if [[ $# -gt 0 && $1 == ahosts ]]; then echo "127.0.1.1 STREAM alex"; fi',
     );
-    await executable(join(bin, 'ssh'), 'exit 97');
+    await executable(path.join(bin, 'ssh'), 'exit 97');
 
     const result = run('apply-migrations.sh', root, bin, {}, [migration]);
 
@@ -73,32 +74,32 @@ describe('Supabase setup scripts', () => {
 
   it('configures one dedicated app schema from the neutral starter', async () => {
     const root = await workspace();
-    const bin = join(root, 'bin');
+    const bin = path.join(root, 'bin');
     await mkdir(bin);
 
     const result = run('configure-supabase.sh', root, bin, {}, ['workout_log']);
 
     expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);
-    expect(await readFile(join(root, 'supabase', 'project.env'), 'utf8')).toContain(
+    expect(await readFile(path.join(root, 'supabase', 'project.env'), 'utf8')).toContain(
       'SUPABASE_SCHEMA=workout_log',
     );
-    expect(await readFile(join(root, 'supabase', 'config.toml'), 'utf8')).toContain(
+    expect(await readFile(path.join(root, 'supabase', 'config.toml'), 'utf8')).toContain(
       'schemas = ["workout_log", "graphql_public"]',
     );
     expect(
-      await readFile(join(root, 'src', 'lib', 'supabase', 'database-schema.generated.ts'), 'utf8'),
+      await readFile(path.join(root, 'src', 'lib', 'supabase', 'database-schema.generated.ts'), 'utf8'),
     ).toContain("databaseSchema = 'workout_log'");
   });
 
   it('never truncates the tracked types when postgres-meta returns an error page', async () => {
     const root = await workspace();
-    const bin = join(root, 'bin');
-    const output = join(root, 'src', 'lib', 'supabase', 'database-generated.types.ts');
+    const bin = path.join(root, 'bin');
+    const output = path.join(root, 'src', 'lib', 'supabase', 'database-generated.types.ts');
     await mkdir(bin);
     await writeProjectConfig(root);
     await writeFile(output, '// known-good types\nexport type Database = { safe: true };\n');
     await executable(
-      join(bin, 'docker'),
+      path.join(bin, 'docker'),
       `if [[ "\${1:-}" == ps ]]; then echo test-meta; exit 0; fi\necho '<html>bad gateway</html>'`,
     );
 
@@ -115,14 +116,14 @@ describe('Supabase setup scripts', () => {
 
   it('uses the Docker-group fallback and atomically installs valid generated types', async () => {
     const root = await workspace();
-    const bin = join(root, 'bin');
-    const output = join(root, 'src', 'lib', 'supabase', 'database-generated.types.ts');
+    const bin = path.join(root, 'bin');
+    const output = path.join(root, 'src', 'lib', 'supabase', 'database-generated.types.ts');
     await mkdir(bin);
     await writeProjectConfig(root);
     await writeFile(output, '// old types\n');
-    await executable(join(bin, 'docker'), 'exit 1');
+    await executable(path.join(bin, 'docker'), 'exit 1');
     await executable(
-      join(bin, 'sudo'),
+      path.join(bin, 'sudo'),
       `if [[ "$*" == *"docker ps"* ]]; then echo test-meta; exit 0; fi
 if [[ "$*" == *"docker exec"* ]]; then
   printf 'export type Database = {\\n  workout_log: {\\n    Tables: {};\\n    Views: {};\\n    Functions: {};\\n    Enums: {};\\n    CompositeTypes: {};\\n  };\\n};\\n'
@@ -136,19 +137,20 @@ fi`,
 
     expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);
     expect(await readFile(output, 'utf8')).toContain('workout_log:');
-    expect((await stat(output)).mode & 0o777).toBe(0o644);
+    const { mode } = await stat(output);
+    expect(mode.toString(8).slice(-3)).toBe('644');
   });
 
   it('verifies the configured schema after applying an explicit migration', async () => {
     const root = await workspace();
-    const bin = join(root, 'bin');
-    const sqlLog = join(root, 'sql.log');
-    const migration = join(root, 'supabase', 'migrations', '001.sql');
+    const bin = path.join(root, 'bin');
+    const sqlLog = path.join(root, 'sql.log');
+    const migration = path.join(root, 'supabase', 'migrations', '001.sql');
     await mkdir(bin);
     await writeProjectConfig(root);
     await writeFile(migration, 'select 42;\n');
     await executable(
-      join(bin, 'docker'),
+      path.join(bin, 'docker'),
       `if [[ "\${1:-}" == ps ]]; then echo test-db; exit 0; fi
 input=$(cat)
 printf '%s\\n' "$input" >> '${sqlLog}'
@@ -167,15 +169,15 @@ exit 0`,
 
   it('runs the local Supabase CLI with the current user and Docker group fallback', async () => {
     const root = await workspace();
-    const bin = join(root, 'bin');
-    const calls = join(root, 'calls.log');
-    const cli = join(bin, 'supabase');
+    const bin = path.join(root, 'bin');
+    const calls = path.join(root, 'calls.log');
+    const cli = path.join(bin, 'supabase');
     await mkdir(bin);
     await writeProjectConfig(root);
-    await executable(join(bin, 'docker'), 'exit 1');
+    await executable(path.join(bin, 'docker'), 'exit 1');
     await executable(cli, `printf 'direct cli\\n' >> '${calls}'`);
     await executable(
-      join(bin, 'sudo'),
+      path.join(bin, 'sudo'),
       `if [[ "$*" == *"docker ps"* ]]; then exit 0; fi
 printf '%s\\n' "$*" >> '${calls}'`,
     );
@@ -189,13 +191,13 @@ printf '%s\\n' "$*" >> '${calls}'`,
 
   it('bootstraps migrations when the configured schema is missing on first start', async () => {
     const root = await workspace();
-    const bin = join(root, 'bin');
-    const calls = join(root, 'calls.log');
-    const marker = join(root, 'started-once');
-    const cli = join(bin, 'supabase');
+    const bin = path.join(root, 'bin');
+    const calls = path.join(root, 'calls.log');
+    const marker = path.join(root, 'started-once');
+    const cli = path.join(bin, 'supabase');
     await mkdir(bin);
     await writeProjectConfig(root);
-    await executable(join(bin, 'docker'), 'exit 0');
+    await executable(path.join(bin, 'docker'), 'exit 0');
     await executable(
       cli,
       `printf '%s\n' "$*" >> '${calls}'
@@ -209,7 +211,8 @@ fi`,
     const result = run('local-supabase.sh', root, bin, { SUPABASE_CLI: cli }, ['start']);
 
     expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);
-    expect((await readFile(calls, 'utf8')).trim().split('\n')).toEqual([
+    const invoked = await readFile(calls, 'utf8');
+    expect(invoked.trim().split('\n')).toEqual([
       'start',
       'db start',
       'db reset --local --no-seed',

@@ -12,8 +12,10 @@ const applyTheme = function applyTheme(theme: Theme): void {
   const meta = document.querySelector<HTMLMetaElement>(
     'meta[name="theme-color"]'
   );
+
   const color =
     theme === "dark" ? meta?.dataset["themeDark"] : meta?.dataset["themeLight"];
+
   if (meta !== null && color !== undefined) {
     meta.content = color;
   }
@@ -22,6 +24,7 @@ const applyTheme = function applyTheme(theme: Theme): void {
 const readTheme = function readTheme(key: string, initialValue: Theme): Theme {
   try {
     const parsed = themeSchema.safeParse(window.localStorage.getItem(key));
+
     return parsed.success ? parsed.data : initialValue;
   } catch {
     return initialValue;
@@ -30,6 +33,7 @@ const readTheme = function readTheme(key: string, initialValue: Theme): Theme {
 
 const writeTheme = function writeTheme(key: string, theme: Theme): void {
   applyTheme(theme);
+
   try {
     window.localStorage.setItem(key, theme);
   } catch {
@@ -39,6 +43,7 @@ const writeTheme = function writeTheme(key: string, theme: Theme): void {
 
 const removeTheme = function removeTheme(key: string): void {
   applyTheme(DEFAULT_THEME);
+
   try {
     window.localStorage.removeItem(key);
   } catch {
@@ -48,19 +53,22 @@ const removeTheme = function removeTheme(key: string): void {
 
 const subscribeToTheme = function subscribeToTheme(
   key: string,
-  callback: (theme: Theme) => void,
+  onChange: (theme: Theme) => void,
   initialValue: Theme
 ): (() => void) | undefined {
   const onStorage = (event: StorageEvent): void => {
     if (event.key !== key) {
       return;
     }
+
     const parsed = themeSchema.safeParse(event.newValue);
     const theme = parsed.success ? parsed.data : initialValue;
     applyTheme(theme);
-    callback(theme);
+    onChange(theme);
   };
+
   window.addEventListener("storage", onStorage);
+
   return () => window.removeEventListener("storage", onStorage);
 };
 

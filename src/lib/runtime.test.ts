@@ -14,12 +14,13 @@ describe("createAppRuntime", () => {
   it("reports a failed mutation through its reporter adapter", async () => {
     const reportError = vi.fn<(error: Error) => void>();
     const runtime = createAppRuntime({ mutationErrorReporter: reportError });
+
     const mutation = runtime.queryClient
       .getMutationCache()
       .build(runtime.queryClient, {
-        mutationFn: async (title: string) => {
-          throw new Error(`Could not save ${title}.`);
-        },
+        mutationFn: vi
+          .fn<(title: string) => Promise<never>>()
+          .mockRejectedValue(new Error("Could not save Ship it.")),
         retry: false,
       });
 

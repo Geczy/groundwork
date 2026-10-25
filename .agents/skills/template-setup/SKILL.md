@@ -81,4 +81,4 @@ the same guidance regardless of which agent they run. It is a real copy in both 
 than a symlink, because that is what the installer writes, and `skills-lock.json` pins the
 version. Treat it as generated: a reinstall overwrites hand edits. Install for another agent with
 `bunx skills add jotaijs/jotai-skills --copy -y --skill jotai --agent <name>`, and add any new
-agent directory to `ignorePatterns` in `.oxfmtrc.jsonc`.
+agent directory to `ignorePatterns` in `oxfmt.config.ts`.

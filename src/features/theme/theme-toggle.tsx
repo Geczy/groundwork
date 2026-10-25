@@ -9,6 +9,7 @@ import { themeAtom, toggleThemeAtom } from "./theme.state";
 export const ThemeToggle = (): JSX.Element => {
   const theme = useAtomValue(themeAtom);
   const toggleTheme = useSetAtom(toggleThemeAtom);
+
   const label =
     theme === "light" ? "Switch to dark theme" : "Switch to light theme";
 

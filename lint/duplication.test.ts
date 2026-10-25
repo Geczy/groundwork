@@ -1,14 +1,13 @@
-import { execFile } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import path from "node:path";
 
 import { describe, expect, it, onTestFinished } from "vitest";
-import { z } from "zod";
 
-const repo = resolve(import.meta.dirname, "..");
-const jscpd = join(repo, "node_modules", ".bin", "jscpd");
-const config = join(repo, ".jscpd.json");
+const repo = path.resolve(import.meta.dirname, "..");
+const jscpd = path.join(repo, "node_modules", ".bin", "jscpd");
+const config = path.join(repo, ".jscpd.json");
 
 /**
  * jscpd is the cross-file half of the duplication check, and its only assertion is an exit
@@ -16,32 +15,25 @@ const config = join(repo, ".jscpd.json");
  * while every other setting, the 50-token floor included, still comes from the real file.
  */
 const run = async function run(files: Record<string, string>): Promise<number> {
-  const dir = await mkdtemp(join(tmpdir(), "jscpd-"));
+  const dir = await mkdtemp(path.join(tmpdir(), "jscpd-"));
   onTestFinished(async () => {
     await rm(dir, { force: true, recursive: true });
   });
 
   await Promise.all(
     Object.entries(files).map(
-      async ([name, source]) => await writeFile(join(dir, name), source)
+      async ([name, source]) => await writeFile(path.join(dir, name), source)
     )
   );
 
-  return await new Promise((settle, fail) => {
-    execFile(jscpd, ["--config", config, dir], { cwd: repo }, (error) => {
-      if (error === null) {
-        settle(0);
-        return;
-      }
-      // An exit code is the finding; anything else means jscpd never ran.
-      const code = z.number().safeParse(error.code);
-      if (code.success) {
-        settle(code.data);
-      } else {
-        fail(new Error("jscpd did not run", { cause: error }));
-      }
-    });
-  });
+  const result = spawnSync(jscpd, ["--config", config, dir], { cwd: repo });
+
+  // An exit code is the finding; anything else means jscpd never ran.
+  if (result.status === null) {
+    throw new Error("jscpd did not run", { cause: result.error });
+  }
+
+  return result.status;
 };
 
 // Sixty-odd tokens, so the pair clears the floor without either file being long.

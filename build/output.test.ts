@@ -1,5 +1,5 @@
 import { readFile, stat } from 'node:fs/promises';
-import { join } from 'node:path';
+import path from 'node:path';
 import { brotliDecompressSync } from 'node:zlib';
 import sharp from 'sharp';
 import type { Sharp } from 'sharp';
@@ -18,8 +18,8 @@ afterEach(() => {
 
 const text = (bytes: number): string => 'const value = 1;\n'.repeat(bytes).slice(0, bytes);
 
-const exists =  async (path: string): Promise<boolean> =>
-  await stat(path).then(
+const exists =  async (file: string): Promise<boolean> =>
+  await stat(file).then(
     () => true,
     () => false,
   );
@@ -47,29 +47,32 @@ const run = async function run(dir: string): Promise<string> {
   const hooks = start(createOutputLifecycle(), dir, log);
   await hooks.writeBundle();
   await hooks.closeBundle();
+
   return log.lines.join('\n');
 }
 
 describe('build output Vite interface', () => {
   it('runs image rewriting before precompressing the final bytes in a real Vite build', async () => {
     const root = await distDir();
+
     const circles = Array.from(
       { length: 240 },
       (_, index) => `<circle cx="${String(index)}" cy="${String(index % 24)}" r="1"/>`,
     ).join('');
+
     const rawSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 24">${circles}</svg>`;
     await put(root, 'index.html', '<main>ready</main>');
     await put(root, 'public/icon.svg', rawSvg);
 
     await viteBuild({
-      build: { outDir: join(root, 'dist') },
+      build: { outDir: path.join(root, 'dist') },
       logLevel: 'silent',
       plugins: [output()],
       root,
     });
 
-    const optimized = await readFile(join(root, 'dist', 'icon.svg'));
-    const compressed = await readFile(join(root, 'dist', 'icon.svg.br'));
+    const optimized = await readFile(path.join(root, 'dist', 'icon.svg'));
+    const compressed = await readFile(path.join(root, 'dist', 'icon.svg.br'));
     expect(brotliDecompressSync(compressed)).toEqual(optimized);
     expect(optimized.byteLength).toBeLessThan(Buffer.byteLength(rawSvg));
   });
@@ -87,7 +90,8 @@ describe('build output Vite interface', () => {
 
     await run(dir);
 
-    expect((await readFile(join(dir, name))).byteLength).toBeLessThan(raw.byteLength);
+    const shrunk = await readFile(path.join(dir, name));
+    expect(shrunk.byteLength).toBeLessThan(raw.byteLength);
   });
 
   it('minifies SVG without stripping its viewBox', async () => {
@@ -95,7 +99,7 @@ describe('build output Vite interface', () => {
     await put(dir, 'icon.svg', SVG);
 
     await run(dir);
-    const optimized = await readFile(join(dir, 'icon.svg'), 'utf8');
+    const optimized = await readFile(path.join(dir, 'icon.svg'), 'utf8');
 
     expect(optimized.length).toBeLessThan(SVG.length);
     expect(optimized).toContain('viewBox="0 0 24 24"');
@@ -104,16 +108,18 @@ describe('build output Vite interface', () => {
 
   it('bakes EXIF orientation into image pixels', async () => {
     const dir = await distDir();
+
     const raw = await sharp({
       create: { background: { b: 40, g: 30, r: 200 }, channels: 3, height: 120, width: 160 },
     })
       .jpeg({ quality: 100 })
       .withMetadata({ orientation: 6 })
       .toBuffer();
+
     await put(dir, 'photo.jpg', raw);
 
     await run(dir);
-    const metadata = await sharp(await readFile(join(dir, 'photo.jpg'))).metadata();
+    const metadata = await sharp(await readFile(path.join(dir, 'photo.jpg'))).metadata();
 
     expect([metadata.width, metadata.height]).toEqual([120, 160]);
     expect(metadata.orientation).toBeUndefined();
@@ -126,7 +132,7 @@ describe('build output Vite interface', () => {
 
     await run(dir);
 
-    expect(await readFile(join(dir, name))).toEqual(raw);
+    expect(await readFile(path.join(dir, name))).toEqual(raw);
   });
 
   it('precompresses text at one MTU and leaves smaller text alone', async () => {
@@ -136,8 +142,8 @@ describe('build output Vite interface', () => {
 
     await run(dir);
 
-    expect(await exists(join(dir, 'edge.js.br'))).toBe(true);
-    expect(await exists(join(dir, 'under.js.br'))).toBe(false);
+    expect(await exists(path.join(dir, 'edge.js.br'))).toBe(true);
+    expect(await exists(path.join(dir, 'under.js.br'))).toBe(false);
   });
 
   it('reports images, Brotli output, and total transfer weight', async () => {

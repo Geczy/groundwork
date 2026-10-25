@@ -1,6 +1,6 @@
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import path from 'node:path';
 import { onTestFinished, vi } from 'vitest';
 import type { OutputLifecycle } from '../output.ts';
 
@@ -9,6 +9,7 @@ export interface Recorder { info: (message: string) => void; lines: Array<string
 
 export const recorder = function recorder(): Recorder {
   const lines: Array<string> = [];
+
   return {
     info: (msg) => {
       lines.push(msg);
@@ -36,19 +37,22 @@ export const stripAnsi = (s: string): string => s.replaceAll(ANSI, '');
  */
 export const start = function start(lifecycle: OutputLifecycle, dir: string, log: Recorder): OutputLifecycle {
   lifecycle.configResolved({ build: { outDir: dir }, logger: log });
+
   return lifecycle;
 }
 
 /** An empty stand-in for `dist/`, removed when the test ends. */
 export const distDir = async function distDir(): Promise<string> {
-  const dir = await mkdtemp(join(tmpdir(), 'build-'));
+  const dir = await mkdtemp(path.join(tmpdir(), 'build-'));
   onTestFinished( async () => await rm(dir, { force: true, recursive: true }));
+
   return dir;
 }
 
 export const put = async function put(dir: string, name: string, data: Buffer | string): Promise<string> {
-  const path = join(dir, name);
-  await mkdir(dirname(path), { recursive: true });
-  await writeFile(path, data);
-  return path;
+  const file = path.join(dir, name);
+  await mkdir(path.dirname(file), { recursive: true });
+  await writeFile(file, data);
+
+  return file;
 }

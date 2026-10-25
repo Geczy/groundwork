@@ -9,8 +9,6 @@ export default defineConfig({
     // per-file, so this split is what keeps `localStorage.clear()` out of a Node test.
     // Run one with `vitest --project build`.
     coverage: {
-      include: ["src/**/*.{ts,tsx}", "build/**/*.ts"],
-      provider: "v8",
       // Generated, vendored, or wiring that only a real browser exercises.
       exclude: [
         "src/routeTree.gen.ts",
@@ -25,6 +23,8 @@ export default defineConfig({
         // it however thoroughly lint/jotai.test.ts drives it.
         "lint/**",
       ],
+      include: ["src/**/*.{ts,tsx}", "build/**/*.ts"],
+      provider: "v8",
       // A floor against a feature landing untested, not a quality bar. Raise, never lower.
       thresholds: { branches: 90, functions: 90, lines: 90, statements: 90 },
     },
@@ -33,15 +33,15 @@ export default defineConfig({
         plugins: [react()],
         resolve: { tsconfigPaths: true },
         test: {
+          // A route test renders __root.tsx, and the devtools panels have no business in jsdom.
+          env: { VITE_ENABLE_DEVTOOLS: "false" },
           environment: "jsdom",
-          name: "app",
-          setupFiles: ["./src/test/setup.ts"],
           // Node 25's stub `localStorage` shadows jsdom's, which vitest only installs when
           // the global is absent. Off, so jsdom's is the only one. See vitest-dev/vitest#8757.
           execArgv: ["--no-experimental-webstorage"],
-          // A route test renders __root.tsx, and the devtools panels have no business in jsdom.
-          env: { VITE_ENABLE_DEVTOOLS: "false" },
           include: ["src/**/*.test.{ts,tsx}"],
+          name: "app",
+          setupFiles: ["./src/test/setup.ts"],
         },
       },
       {
@@ -56,9 +56,9 @@ export default defineConfig({
         resolve: { tsconfigPaths: true },
         test: {
           environment: "node",
+          include: ["lint/**/*.test.ts"],
           name: "lint",
           // Each case spawns the oxlint binary, so give them longer than the 5s default.
-          include: ["lint/**/*.test.ts"],
           testTimeout: 20_000,
         },
       },

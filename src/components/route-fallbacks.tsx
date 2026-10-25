@@ -45,7 +45,9 @@ export const RouteError = ({ error }: { error: Error }): JSX.Element => {
         </p>
       </div>
       <Button
-        onClick={() => void router.invalidate()}
+        onClick={() => {
+          void router.invalidate();
+        }}
         size="sm"
         type="button"
         variant="outline"

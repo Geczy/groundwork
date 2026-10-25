@@ -12,6 +12,7 @@ export const envSchema = z
   .superRefine((values, context) => {
     const hasUrl = values.VITE_SUPABASE_URL !== "";
     const hasKey = values.VITE_SUPABASE_PUBLISHABLE_KEY !== "";
+
     if (hasUrl === hasKey) {
       return;
     }

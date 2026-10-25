@@ -22,6 +22,7 @@ const createTestRuntime = function createTestRuntime(
   providers: Providers
 ): RenderedRuntime {
   const mutationErrors: Array<Error> = [];
+
   const runtime = createAppRuntime({
     history: createMemoryHistory({ initialEntries: [path] }),
     mutationErrorReporter: (error) => {
@@ -31,6 +32,7 @@ const createTestRuntime = function createTestRuntime(
     queryRetry: false,
     store: providers.store,
   });
+
   return { mutationErrors, runtime };
 };
 

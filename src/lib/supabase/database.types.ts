@@ -2,14 +2,19 @@ import type { Database as GeneratedDatabase } from "./database-generated.types";
 import type { databaseSchema } from "./database-schema.generated";
 
 export { databaseSchema } from "./database-schema.generated";
+
 export type { Json } from "./database-generated.types";
 
 export type Database = GeneratedDatabase;
+
 type AppDatabaseSchema = Database[typeof databaseSchema];
 
 export type TableName = keyof AppDatabaseSchema["Tables"];
+
 export type ViewName = keyof AppDatabaseSchema["Views"];
+
 export type RpcName = keyof AppDatabaseSchema["Functions"];
+
 export type EnumName = keyof AppDatabaseSchema["Enums"];
 
 export type Tables<Name extends TableName> =

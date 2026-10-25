@@ -56,5 +56,6 @@ export const nodeStringValue = function nodeStringValue(
   node: Node | undefined
 ): string | undefined {
   const parsed = nodeStringSchema.safeParse(node?.value);
+
   return parsed.success ? parsed.data : undefined;
 };

@@ -10,7 +10,7 @@
  */
 
 import { readdirSync } from "node:fs";
-import { join } from "node:path";
+import path from "node:path";
 
 import type { BaseContext, Node, Rule } from "./types.ts";
 
@@ -169,12 +169,13 @@ const ELSEWHERE = new Map([
 const readPrimitives = function readPrimitives(): Set<string> {
   try {
     const files = readdirSync(
-      join(import.meta.dirname, "..", "src", "components", "ui")
+      path.join(import.meta.dirname, "..", "src", "components", "ui")
     );
+
     return new Set(
-      files
-        .filter((file) => file.endsWith(".tsx"))
-        .map((file) => file.slice(0, -4))
+      files.flatMap((file) =>
+        file.endsWith(".tsx") ? [file.slice(0, -4)] : []
+      )
     );
   } catch {
     return new Set();
@@ -185,6 +186,7 @@ const PRIMITIVES = readPrimitives();
 
 const advise = function advise(tag: string): string {
   const elsewhere = ELSEWHERE.get(tag);
+
   if (elsewhere !== undefined) {
     return `Use ${elsewhere}.`;
   }
@@ -193,6 +195,7 @@ const advise = function advise(tag: string): string {
     file: tag,
     name: `${tag.charAt(0).toUpperCase()}${tag.slice(1)}`,
   };
+
   if (PRIMITIVES.has(owner.file)) {
     return `Use \`${owner.name}\` from @/components/ui/${owner.file}.`;
   }
@@ -218,6 +221,7 @@ const noRawElement: Rule<Context> = {
         }
 
         const tag = node.name;
+
         // A capital says it is a component, which is the whole point of the rule.
         if (tag === undefined || !/^[a-z]/u.test(tag) || allowed.has(tag)) {
           return;

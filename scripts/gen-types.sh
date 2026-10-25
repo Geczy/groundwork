@@ -66,7 +66,7 @@ fi
   cat "$RAW"
 } > "$NEXT"
 
-"$SCRIPT_DIR/../node_modules/.bin/oxfmt" -c "$SCRIPT_DIR/../.oxfmtrc.jsonc" "$NEXT" >/dev/null
+"$SCRIPT_DIR/../node_modules/.bin/oxfmt" -c "$SCRIPT_DIR/../oxfmt.config.ts" "$NEXT" >/dev/null
 chmod 0644 "$NEXT"
 mv "$NEXT" "$OUT"
 

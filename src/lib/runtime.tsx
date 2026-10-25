@@ -24,6 +24,7 @@ import { notifyError } from "./notify";
 export interface RuntimeContext {
   queryClient: QueryClient;
 }
+
 export type RuntimeStore = ReturnType<typeof createStore>;
 
 interface RuntimeOptions {
@@ -45,6 +46,7 @@ const routerDefaults = {
 
 const buildRuntime = function buildRuntime(options: RuntimeOptions = {}) {
   const mutationErrorReporter = options.mutationErrorReporter ?? notifyError;
+
   const queryClient =
     options.queryClient ??
     new QueryClient({
@@ -57,11 +59,13 @@ const buildRuntime = function buildRuntime(options: RuntimeOptions = {}) {
         },
       }),
     });
+
   const routerOptions = {
     context: { queryClient },
     routeTree,
     ...routerDefaults,
   };
+
   const router =
     options.history === undefined
       ? createRouter(routerOptions)

@@ -1,19 +1,20 @@
-import { execFile } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import path from "node:path";
 
 import { onTestFinished } from "vitest";
 import { z } from "zod";
 
-const repo = resolve(import.meta.dirname, "..", "..");
-const oxlint = join(repo, "node_modules", ".bin", "oxlint");
-const projectConfig = join(repo, "oxlint.config.ts");
+const repo = path.resolve(import.meta.dirname, "..", "..");
+const oxlint = path.join(repo, "node_modules", ".bin", "oxlint");
+const projectConfig = path.join(repo, "oxlint.config.ts");
+
 const plugins = [
-  { name: "jotai", specifier: join(repo, "lint", "jotai.ts") },
-  { name: "dry", specifier: join(repo, "lint", "dry.ts") },
-  { name: "ui", specifier: join(repo, "lint", "ui.ts") },
-  { name: "feature", specifier: join(repo, "lint", "feature.ts") },
+  { name: "jotai", specifier: path.join(repo, "lint", "jotai.ts") },
+  { name: "dry", specifier: path.join(repo, "lint", "dry.ts") },
+  { name: "ui", specifier: path.join(repo, "lint", "ui.ts") },
+  { name: "feature", specifier: path.join(repo, "lint", "feature.ts") },
 ];
 
 export interface Finding {
@@ -28,6 +29,7 @@ interface RuleOptions {
   minTokens?: number;
   suffixes?: Array<string>;
 }
+
 type RuleSetting = string | [string, RuleOptions];
 
 const lintOutputSchema = z.object({
@@ -57,24 +59,25 @@ export const lint = async function lint(
   rules: Record<string, RuleSetting>,
   name = "case.tsx"
 ): Promise<Array<Finding>> {
-  const dir = await mkdtemp(join(tmpdir(), "lint-"));
+  const dir = await mkdtemp(path.join(tmpdir(), "lint-"));
   onTestFinished(async () => {
     await rm(dir, { force: true, recursive: true });
   });
 
   const config = {
-    jsPlugins: plugins,
     // Only the rules under test: inheriting the repo's own config would mix its findings in.
     // Registering every local plugin costs nothing: a rule `rules` does not name never runs.
     categories: {},
+    jsPlugins: plugins,
     plugins: [],
     rules,
   };
-  const path = join(dir, "config.json");
-  await writeFile(path, JSON.stringify(config));
+
+  const file = path.join(dir, "config.json");
+  await writeFile(file, JSON.stringify(config));
   await writeFixture(dir, name, source);
 
-  return parse(await capture(dir, name, path));
+  return parse(capture(dir, name, file));
 };
 
 /**
@@ -87,14 +90,14 @@ export const lintWithProjectConfig = async function lintWithProjectConfig(
   source: string,
   name = "case.tsx"
 ): Promise<Array<Finding>> {
-  const dir = await mkdtemp(join(tmpdir(), "lint-"));
+  const dir = await mkdtemp(path.join(tmpdir(), "lint-"));
   onTestFinished(async () => {
     await rm(dir, { force: true, recursive: true });
   });
 
   await writeFixture(dir, name, source);
 
-  return parse(await capture(dir, name, projectConfig));
+  return parse(capture(dir, name, projectConfig));
 };
 
 const writeFixture = async function writeFixture(
@@ -102,29 +105,36 @@ const writeFixture = async function writeFixture(
   name: string,
   source: string
 ): Promise<void> {
-  const path = join(dir, name);
-  await mkdir(dirname(path), { recursive: true });
-  await writeFile(path, source);
+  const file = path.join(dir, name);
+  await mkdir(path.dirname(file), { recursive: true });
+  await writeFile(file, source);
 };
 
-const capture = async function capture(
+const capture = function capture(
   dir: string,
   name: string,
   config: string
-): Promise<string> {
-  const args = ["-f", "json", "--no-ignore", "-c", config, join(dir, name)];
+): string {
+  const args = [
+    "-f",
+    "json",
+    "--no-ignore",
+    "-c",
+    config,
+    path.join(dir, name),
+  ];
 
-  return await new Promise((settle, fail) => {
-    execFile(oxlint, args, { cwd: dir }, (error, stdout) => {
-      // oxlint exits non-zero whenever it reports anything, which is most of these cases, so
-      // output is the success signal rather than the exit code.
-      if (stdout === "") {
-        fail(error ?? new Error("oxlint produced no output"));
-      } else {
-        settle(stdout);
-      }
-    });
-  });
+  const result = spawnSync(oxlint, args, { cwd: dir, encoding: "utf8" });
+
+  // oxlint exits non-zero whenever it reports anything, which is most of these cases, so
+  // output is the success signal rather than the exit code.
+  if (result.stdout === "") {
+    throw (
+      result.error ?? new Error(`oxlint produced no output: ${result.stderr}`)
+    );
+  }
+
+  return result.stdout;
 };
 
 const parse = function parse(stdout: string): Array<Finding> {

@@ -11,6 +11,7 @@ export interface SupabaseConnection {
   publishableKey: string;
   url: string;
 }
+
 export type SupabaseClient = BaseSupabaseClient<
   Database,
   typeof databaseSchema
@@ -41,7 +42,9 @@ export const createSupabaseAccessor = function createSupabaseAccessor<Client>(
         "Supabase is not connected. Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY."
       );
     }
+
     client ??= create(connection);
+
     return client;
   };
 };

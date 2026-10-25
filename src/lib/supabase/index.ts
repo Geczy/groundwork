@@ -1,6 +1,9 @@
 export { getSupabase } from "./client";
+
 export type { SupabaseClient } from "./client";
+
 export { databaseSchema } from "./database.types";
+
 export type {
   Database,
   Enums,

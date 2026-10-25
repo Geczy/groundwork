@@ -51,6 +51,7 @@ describe("no-raw-element", () => {
     );
 
     expect(found).toHaveLength(3);
+
     for (const finding of found) {
       expect(finding.message).toContain("add table");
     }

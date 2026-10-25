@@ -38,19 +38,23 @@ const noIdenticalFunctions: Rule<Context> = {
 
     const check = function check(node: Node): void {
       const { body } = node;
+
       if (body === undefined) {
         return;
       }
 
       const tokens = context.sourceCode.getTokens(body);
+
       if (tokens.length < minTokens) {
         return;
       }
 
       const key = signature(tokens);
       const first = firstSeenAt.get(key);
+
       if (first === undefined) {
         firstSeenAt.set(key, context.sourceCode.getLoc(node).start.line);
+
         return;
       }
 

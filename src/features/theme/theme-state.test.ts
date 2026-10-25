@@ -11,6 +11,7 @@ const themeMeta = function themeMeta(): HTMLMetaElement {
   meta.dataset["themeLight"] = "#ffffff";
   meta.dataset["themeDark"] = "#0c0a09";
   document.head.append(meta);
+
   return meta;
 };
 
@@ -56,6 +57,7 @@ describe("toggleThemeAtom", () => {
     const meta = themeMeta();
     const store = createStore();
     store.set(themeAtom, "dark");
+    expect(store.get(themeAtom)).toBe("dark");
 
     store.set(themeAtom, RESET);
 

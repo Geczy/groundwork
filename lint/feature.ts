@@ -1,6 +1,6 @@
 /** Enforces the feature dependency direction documented in AGENTS.md. */
 
-import { basename } from "node:path";
+import path from "node:path";
 
 import { nodeStringValue } from "./types.ts";
 import type { BaseContext, Node, Rule } from "./types.ts";
@@ -18,46 +18,48 @@ const RANK = {
   transport: 2,
 } satisfies Record<Role, number>;
 
+const REACT_QUERY = "@tanstack/react-query";
+
 const PACKAGE_BANS = new Map<Role, ReadonlySet<string>>([
-  [
-    "schema",
-    new Set([
-      "react",
-      "jotai",
-      "@tanstack/react-query",
-      "@tanstack/react-form",
-    ]),
-  ],
-  ["state", new Set(["react", "@tanstack/react-query"])],
-  ["transport", new Set(["react", "jotai", "@tanstack/react-query"])],
+  ["schema", new Set(["react", "jotai", REACT_QUERY, "@tanstack/react-form"])],
+  ["state", new Set(["react", REACT_QUERY])],
+  ["transport", new Set(["react", "jotai", REACT_QUERY])],
 ]);
 
 const roleOfFile = function roleOfFile(filename: string): Role | undefined {
-  const name = basename(filename);
+  const name = path.basename(filename);
+
   if (
     name.includes(".test.") ||
     !filename.replaceAll("\\", "/").includes("/src/features/")
   ) {
     return undefined;
   }
+
   if (name === "index.ts") {
     return "index";
   }
+
   if (name.endsWith(".schema.ts")) {
     return "schema";
   }
+
   if (name.endsWith(".state.ts")) {
     return "state";
   }
+
   if (name.endsWith(".api.ts")) {
     return "transport";
   }
+
   if (name.endsWith(".queries.ts")) {
     return "query";
   }
+
   if (name.endsWith(".tsx")) {
     return "rendering";
   }
+
   return undefined;
 };
 
@@ -65,29 +67,37 @@ const roleOfImport = function roleOfImport(specifier: string): Role {
   if (/\.schema(?:\.ts)?$/u.test(specifier)) {
     return "schema";
   }
+
   if (/\.state(?:\.ts)?$/u.test(specifier)) {
     return "state";
   }
+
   if (/\.api(?:\.ts)?$/u.test(specifier)) {
     return "transport";
   }
+
   if (/\.queries(?:\.ts)?$/u.test(specifier)) {
     return "query";
   }
+
   if (/\/index(?:\.ts)?$/u.test(specifier)) {
     return "index";
   }
+
   return "rendering";
 };
 
 const importedNames = function importedNames(node: Node): Set<string> {
   const names = new Set<string>();
+
   for (const specifier of node.specifiers ?? []) {
     const name = specifier.imported?.name;
+
     if (name !== undefined) {
       names.add(name);
     }
   }
+
   return names;
 };
 
@@ -125,18 +135,20 @@ const checkImport = function checkImport(
   role: Role
 ): void {
   const value = nodeStringValue(node.source);
+
   if (value === undefined) {
     return;
   }
 
   if (PACKAGE_BANS.get(role)?.has(value) === true) {
     reportPackage(context, node, role, value);
+
     return;
   }
 
   if (
     role === "rendering" &&
-    value === "@tanstack/react-query" &&
+    value === REACT_QUERY &&
     [...importedNames(node)].some(
       (name) => name === "useMutation" || name === "useQueryClient"
     )
@@ -147,13 +159,16 @@ const checkImport = function checkImport(
         "mutations or query invalidation.",
       node,
     });
+
     return;
   }
 
   if (!value.startsWith(".")) {
     return;
   }
+
   const target = roleOfImport(value);
+
   if (RANK[target] > RANK[role]) {
     reportDirection(context, node, role, target);
   }
@@ -162,6 +177,7 @@ const checkImport = function checkImport(
 const dependencyDirection: Rule<Context> = {
   create(context) {
     const role = roleOfFile(context.filename);
+
     if (role === undefined) {
       return {};
     }

@@ -8,6 +8,7 @@ export const errorMessage = function errorMessage(error: Error): string {
   if (error.message.trim() !== "") {
     return error.message;
   }
+
   return "Something went wrong. Try again.";
 };
 

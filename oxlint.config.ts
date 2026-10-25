@@ -13,22 +13,6 @@ const ultraciteJsPlugins = selectJsPlugins([
 ]);
 
 export default defineConfig({
-  extends: [core, react, shadcn, antiSlop, ultraciteJsPlugins, nkzw],
-  plugins: [
-    "typescript",
-    "react",
-    "import",
-    "unicorn",
-    "oxc",
-    "promise",
-    "jsx-a11y",
-    "vitest",
-    "node",
-    "react-perf",
-  ],
-  // ESLint plugins, run through oxlint's JS bridge (alpha, not covered by semver). Names are
-  // aliases, since `react`, `import`, `typescript` and the rest are reserved by the native Rust
-  // plugins. Rules go in `rules` below by that alias; categories do not reach them.
   categories: {
     correctness: "error",
     pedantic: "error",
@@ -41,9 +25,34 @@ export default defineConfig({
     browser: true,
     es2024: true,
   },
+  extends: [core, react, shadcn, antiSlop, ultraciteJsPlugins, nkzw],
+  // Generated or vendored output, none of it hand-written and none of it hand-editable: a
+  // `bunx shadcn add` rewrites src/components/ui wholesale, so a lint error there has no fix
+  // that survives the next re-add. oxfmt.config.ts and the coverage config draw the same line.
+  ignorePatterns: [
+    "dist",
+    "src/routeTree.gen.ts",
+    "src/lib/supabase/database-generated.types.ts",
+    "src/components/ui",
+    ".agent/**",
+    ".agents/**",
+    ".claude/**",
+    ".codex/**",
+    ".continue/**",
+    ".cursor/**",
+    ".gemini/**",
+    ".opencode/**",
+    ".pi/**",
+    ".roo/**",
+    ".windsurf/**",
+    "tools/oxlint/anti-slop/**",
+  ],
+  // ESLint plugins, run through oxlint's JS bridge (alpha, not covered by semver). Names are
+  // aliases, since `react`, `import`, `typescript` and the rest are reserved by the native Rust
+  // plugins. Rules go in `rules` below by that alias; categories do not reach them.
   jsPlugins: [
-    ...(ultraciteJsPlugins.jsPlugins ?? []),
-    ...(shadcn.jsPlugins ?? []),
+    ...ultraciteJsPlugins.jsPlugins,
+    ...shadcn.jsPlugins,
     { name: "query", specifier: "@tanstack/eslint-plugin-query" },
     { name: "router", specifier: "@tanstack/eslint-plugin-router" },
     // Local, because nothing published lints Jotai. See lint/jotai.ts.
@@ -68,27 +77,6 @@ export default defineConfig({
     // only tier that sees across a call boundary. Requires TypeScript 7.
     typeAware: true,
   },
-  // Generated or vendored output, none of it hand-written and none of it hand-editable: a
-  // `bunx shadcn add` rewrites src/components/ui wholesale, so a lint error there has no fix
-  // that survives the next re-add. .oxfmtrc.jsonc and the coverage config draw the same line.
-  ignorePatterns: [
-    "dist",
-    "src/routeTree.gen.ts",
-    "src/lib/supabase/database-generated.types.ts",
-    "src/components/ui",
-    ".agent/**",
-    ".agents/**",
-    ".claude/**",
-    ".codex/**",
-    ".continue/**",
-    ".cursor/**",
-    ".gemini/**",
-    ".opencode/**",
-    ".pi/**",
-    ".roo/**",
-    ".windsurf/**",
-    "tools/oxlint/anti-slop/**",
-  ],
   overrides: [
     {
       // The git hook is a CLI: printing is how it reports, and it exits on the awaited
@@ -108,14 +96,14 @@ export default defineConfig({
         "lint/test/**/*",
       ],
       rules: {
-        "max-lines": "off",
-        "max-lines-per-function": "off",
-        // Test helpers stay next to the cases that use them.
-        "unicorn/consistent-function-scoping": "off",
         // Two cases that set up identically and assert differently are two cases, not one
         // copy. Extracting the shared half into a helper is what makes a failing test say
         // less about what it was doing.
         "dry/no-identical-functions": "off",
+        "max-lines": "off",
+        "max-lines-per-function": "off",
+        // Test helpers stay next to the cases that use them.
+        "unicorn/consistent-function-scoping": "off",
       },
     },
     {
@@ -173,7 +161,6 @@ export default defineConfig({
       // beside it. Fast Refresh loses that module either way; the router owns its shape.
       files: ["src/routes/**"],
       rules: {
-        "react/only-export-components": "off",
         // Route modules read more naturally with the route declaration first. The callbacks
         // run only after module initialization, so these component references are not a
         // temporal-dead-zone hazard.
@@ -181,6 +168,7 @@ export default defineConfig({
         // Route modules export a router descriptor alongside private page components. The
         // router owns reload boundaries, so Fast Refresh cannot preserve local state here.
         "react-doctor/only-export-components": "off",
+        "react/only-export-components": "off",
       },
     },
     {
@@ -197,10 +185,10 @@ export default defineConfig({
       // applicable to local lint-plugin implementations.
       files: ["lint/**/*.ts"],
       rules: {
-        "sonarjs/function-name": "off",
         // The test harness composes its helpers declaratively. Calls occur after the module
         // has initialized, so their source order cannot create a temporal-dead-zone access.
         "no-use-before-define": "off",
+        "sonarjs/function-name": "off",
       },
     },
     {
@@ -218,6 +206,18 @@ export default defineConfig({
         "unicorn/prefer-top-level-await": "off",
       },
     },
+  ],
+  plugins: [
+    "typescript",
+    "react",
+    "import",
+    "unicorn",
+    "oxc",
+    "promise",
+    "jsx-a11y",
+    "vitest",
+    "node",
+    "react-perf",
   ],
   rules: {
     "anti-slop/no-chained-type-assertions": "error",
@@ -237,6 +237,25 @@ export default defineConfig({
     "anti-slop/require-safety-comment-for-type-assertion": "error",
 
     complexity: ["error", 15],
+
+    // Duplication is the half of DRY a linter can decide. This one is exact and within a
+    // single file, which is the copy most likely to drift and the cheapest to catch. Across
+    // files is `bun run dupes`. Neither sees a component rewritten to do what an existing one
+    // already does, so that half stays a review question.
+    "dry/no-identical-functions": "error",
+
+    "feature/dependency-direction": "error",
+
+    "import/no-cycle": "error",
+    // The CSS and jest-dom side-effect imports are correct code.
+    "import/no-unassigned-import": "off",
+
+    // The three Jotai practices no config-level rule can express. Like the plugins above,
+    // categories do not reach these, so each one is named here.
+    "jotai/atom-suffix": "error",
+    "jotai/no-atom-in-render": "error",
+    "jotai/prefer-narrow-hook": "error",
+
     "max-lines": [
       "error",
       { max: 400, skipBlankLines: true, skipComments: true },
@@ -246,146 +265,7 @@ export default defineConfig({
       { IIFEs: true, max: 40, skipBlankLines: true, skipComments: true },
     ],
 
-    "typescript/no-explicit-any": "error",
-    "typescript/no-non-null-assertion": "error",
-    // `@ts-ignore` silences an error and forgets it; `@ts-expect-error` fails once the
-    // underlying problem is fixed, and the description says what it was.
-    "typescript/ban-ts-comment": [
-      "error",
-      {
-        "ts-expect-error": "allow-with-description",
-        "ts-ignore": true,
-        "ts-nocheck": true,
-      },
-    ],
-    // An inferred return type that is subtly wrong fails at the boundary, not downstream.
     "no-console": "error",
-    "typescript/await-thenable": "error",
-
-    "typescript/explicit-module-boundary-types": "error",
-    "typescript/no-array-delete": "error",
-    "typescript/no-floating-promises": "error",
-    "typescript/no-misused-promises": "error",
-    "typescript/no-unnecessary-condition": "error",
-    "typescript/no-unnecessary-type-assertion": "error",
-    "typescript/require-await": "error",
-    "typescript/switch-exhaustiveness-check": "error",
-    // Flags a React, TanStack or Jotai API the moment upstream deprecates it, so a version
-    // bump surfaces the migration here rather than in a changelog nobody read.
-    "typescript/no-deprecated": "error",
-    "typescript/prefer-promise-reject-errors": "error",
-    // TanStack Router signals a redirect and a 404 by throwing a plain object rather than an
-    // Error, which is how a loader stops without the caller having to check a return value. The
-    // rule cannot know those two are control flow, so name them; everything else still has to be
-    // a real Error.
-    "typescript/no-unsafe-argument": "error",
-
-    "typescript/no-unsafe-assignment": "error",
-    "typescript/no-unsafe-call": "error",
-    "typescript/no-unsafe-member-access": "error",
-    "typescript/no-unsafe-return": "error",
-    "typescript/only-throw-error": [
-      "error",
-      {
-        allow: [
-          {
-            from: "package",
-            name: ["Redirect", "NotFoundError"],
-            package: "@tanstack/router-core",
-          },
-        ],
-      },
-    ],
-    "typescript/prefer-nullish-coalescing": "error",
-    "typescript/restrict-template-expressions": "error",
-
-    // Runs the React Compiler's own analysis in lint-only mode, which is the only tier that
-    // sees the Rules of React rather than just the Rules of Hooks: setState during render or
-    // synchronously in an effect, reading a ref during render, mutating props, state or a
-    // value returned from a hook, calling an impure function during render, defining a
-    // component inside another component's render, and state derived in an effect that
-    // belongs in render. `nursery`, so it is not reached by the categories above and an
-    // oxlint minor can change what it reports; that is the price of the only rule here that
-    // understands what React actually guarantees.
-    "react/capitalized-calls": "error",
-    "react/error-boundaries": "error",
-    "react/exhaustive-effect-dependencies": "error",
-    "react/globals": "error",
-    "react/hooks": "error",
-    "react/immutability": "error",
-    "react/incompatible-library": "error",
-    "react/invariant": "error",
-    "react/memo-dependencies": "error",
-    "react/no-deriving-state-in-effects": "error",
-    "react/preserve-manual-memoization": "error",
-    "react/purity": "error",
-    "react/refs": "error",
-    "react/rule-suppression": "error",
-    "react/set-state-in-effect": "error",
-    "react/set-state-in-render": "error",
-    "react/static-components": "error",
-    "react/syntax": "error",
-    "react/todo": "error",
-    "react/unsupported-syntax": "error",
-    "react/use-memo": "error",
-    "react/void-use-memo": "error",
-    // Fast Refresh only reloads a module that exports components and nothing else. Off for
-    // `src/routes` below; `allowExportNames` does not help there, because it exempts the
-    // export without exempting the local component beside it.
-    "react/only-export-components": "error",
-    // `restriction` rules, so also not reached by the categories. All four are React 19 house
-    // style with nothing in `src` violating them today.
-    "react/button-has-type": "error",
-    "react/no-clone-element": "error",
-    "react/no-danger": "error",
-    "react/prefer-function-component": "error",
-    // Design system rule, in lint/ui.ts rather than react/forbid-elements: a list of banned
-    // elements is right only until src/components/ui grows a component nobody remembered to
-    // ban the element for. This one allows structure and rejects the rest, so a
-    // `bunx shadcn add textarea` needs no edit here, and a raw control fails on the day it is
-    // written whether or not its component exists yet. src/components/ui is in ignorePatterns
-    // above, so the primitives themselves are exempt.
-    "ui/no-raw-element": "error",
-
-    // The queryKey has to name everything the queryFn closes over, or two different fetches
-    // share a cache entry. `prefer-query-options` is not in the plugin's recommended set; it
-    // enforces the `queryOptions` in `<feature>.queries.ts` convention. `no-void-query-fn` is
-    // left out because it needs type information the JS bridge does not hand over.
-    "query/exhaustive-deps": "error",
-    "query/infinite-query-property-order": "error",
-    "query/mutation-property-order": "error",
-    "query/no-rest-destructuring": "error",
-    "query/no-unstable-deps": "error",
-    "query/prefer-query-options": "error",
-    "query/stable-query-client": "error",
-
-    // The three Jotai practices no config-level rule can express. Like the plugins above,
-    // categories do not reach these, so each one is named here.
-    "jotai/atom-suffix": "error",
-    "jotai/no-atom-in-render": "error",
-    "jotai/prefer-narrow-hook": "error",
-
-    // Duplication is the half of DRY a linter can decide. This one is exact and within a
-    // single file, which is the copy most likely to drift and the cheapest to catch. Across
-    // files is `bun run dupes`. Neither sees a component rewritten to do what an existing one
-    // already does, so that half stays a review question.
-    "dry/no-identical-functions": "error",
-    "feature/dependency-direction": "error",
-
-    "router/create-route-property-order": "error",
-    "router/route-param-names": "error",
-
-    // Not reached by the categories above. The first is what makes `globals: false` in
-    // vitest.config.ts an error rather than a runtime surprise.
-    "vitest/no-identical-title": "error",
-    "vitest/prefer-importing-vitest-globals": "error",
-
-    // The other three react-perf rules are hoist-a-constant fixes. This one's only remedy is
-    // useCallback in every component that passes a handler, which buys nothing while the
-    // child is not memoised.
-    "import/no-cycle": "error",
-
-    "react-perf/jsx-no-new-function-as-prop": "off",
     // Named imports only: `import React from 'react'` then `React.forwardRef` slips through.
     "no-restricted-imports": [
       "error",
@@ -426,19 +306,113 @@ export default defineConfig({
       },
     ],
 
+    // The queryKey has to name everything the queryFn closes over, or two different fetches
+    // share a cache entry. `prefer-query-options` is not in the plugin's recommended set; it
+    // enforces the `queryOptions` in `<feature>.queries.ts` convention. `no-void-query-fn` is
+    // left out because it needs type information the JS bridge does not hand over.
+    "query/exhaustive-deps": "error",
+    "query/infinite-query-property-order": "error",
+    "query/mutation-property-order": "error",
+    "query/no-rest-destructuring": "error",
+    "query/no-unstable-deps": "error",
+    "query/prefer-query-options": "error",
+    "query/stable-query-client": "error",
+
+    // The other three react-perf rules are hoist-a-constant fixes. This one's only remedy is
+    // useCallback in every component that passes a handler, which buys nothing while the
+    // child is not memoised.
+    "react-perf/jsx-no-new-function-as-prop": "off",
+
+    // `restriction` rules, so not reached by the categories: this one, react/no-clone-element,
+    // react/no-danger and react/prefer-function-component. All four are React 19 house style
+    // with nothing in `src` violating them today.
+    "react/button-has-type": "error",
+    // Unless noted otherwise, the react/ rules from here to react/void-use-memo run the React
+    // Compiler's own analysis in lint-only mode, which is the only tier that sees the Rules of
+    // React rather than just the Rules of Hooks: setState during render or synchronously in an
+    // effect, reading a ref during render, mutating props, state or a value returned from a
+    // hook, calling an impure function during render, defining a component inside another
+    // component's render, and state derived in an effect that belongs in render. `nursery`, so
+    // they are not reached by the categories above and an oxlint minor can change what they
+    // report; that is the price of the only rules here that understand what React actually
+    // guarantees.
+    "react/capitalized-calls": "error",
+    "react/error-boundaries": "error",
+    "react/exhaustive-effect-dependencies": "error",
+    "react/globals": "error",
+    "react/hooks": "error",
+    "react/immutability": "error",
+    "react/incompatible-library": "error",
+    "react/invariant": "error",
+    "react/memo-dependencies": "error",
+    // `restriction`, like react/button-has-type.
+    "react/no-clone-element": "error",
+    // `restriction`, like react/button-has-type.
+    "react/no-danger": "error",
+    "react/no-deriving-state-in-effects": "error",
+    // Fast Refresh only reloads a module that exports components and nothing else. Off for
+    // `src/routes` above; `allowExportNames` does not help there, because it exempts the
+    // export without exempting the local component beside it.
+    "react/only-export-components": "error",
+    // `restriction`, like react/button-has-type.
+    "react/prefer-function-component": "error",
+    "react/preserve-manual-memoization": "error",
+    "react/purity": "error",
     // Wrong under the automatic JSX runtime.
     "react/react-in-jsx-scope": "off",
-    // The CSS and jest-dom side-effect imports are correct code.
-    "import/no-unassigned-import": "off",
-    // Wants `readonly` on every object parameter, React props included.
-    "typescript/prefer-readonly-parameter-types": "off",
+    "react/refs": "error",
+    "react/rule-suppression": "error",
+    "react/set-state-in-effect": "error",
+    "react/set-state-in-render": "error",
+    "react/static-components": "error",
+    "react/syntax": "error",
+    "react/todo": "error",
+    "react/unsupported-syntax": "error",
+    "react/use-memo": "error",
+    "react/void-use-memo": "error",
+
+    "router/create-route-property-order": "error",
+    "router/route-param-names": "error",
+
+    // Under `exactOptionalPropertyTypes`, `prop?: T | undefined` is not redundant: the
+    // `| undefined` is what lets a caller pass `undefined` explicitly. The rule skips itself
+    // when it can read that compiler option, but the JS bridge hands it no TypeScript program.
+    "sonarjs/no-redundant-optional": "off",
+
+    "typescript/await-thenable": "error",
+    // `@ts-ignore` silences an error and forgets it; `@ts-expect-error` fails once the
+    // underlying problem is fixed, and the description says what it was.
+    "typescript/ban-ts-comment": [
+      "error",
+      {
+        "ts-expect-error": "allow-with-description",
+        "ts-ignore": true,
+        "ts-nocheck": true,
+      },
+    ],
+    // An inferred return type that is subtly wrong fails at the boundary, not downstream.
+    "typescript/explicit-module-boundary-types": "error",
+    "typescript/no-array-delete": "error",
     // Without the option, `onClick={() => step(-1)}` needs a braced body just because
     // `step` returns void. The rest of the rule stays on.
     "typescript/no-confusing-void-expression": [
       "error",
       { ignoreArrowShorthand: true },
     ],
-
+    // Flags a React, TanStack or Jotai API the moment upstream deprecates it, so a version
+    // bump surfaces the migration here rather than in a changelog nobody read.
+    "typescript/no-deprecated": "error",
+    "typescript/no-explicit-any": "error",
+    "typescript/no-floating-promises": "error",
+    "typescript/no-misused-promises": "error",
+    "typescript/no-non-null-assertion": "error",
+    "typescript/no-unnecessary-condition": "error",
+    "typescript/no-unnecessary-type-assertion": "error",
+    "typescript/no-unsafe-argument": "error",
+    "typescript/no-unsafe-assignment": "error",
+    "typescript/no-unsafe-call": "error",
+    "typescript/no-unsafe-member-access": "error",
+    "typescript/no-unsafe-return": "error",
     "typescript/no-unused-vars": [
       "error",
       {
@@ -447,5 +421,41 @@ export default defineConfig({
         varsIgnorePattern: "^_",
       },
     ],
+    // TanStack Router signals a redirect and a 404 by throwing a plain object rather than an
+    // Error, which is how a loader stops without the caller having to check a return value. The
+    // rule cannot know those two are control flow, so name them; everything else still has to be
+    // a real Error.
+    "typescript/only-throw-error": [
+      "error",
+      {
+        allow: [
+          {
+            from: "package",
+            name: ["Redirect", "NotFoundError"],
+            package: "@tanstack/router-core",
+          },
+        ],
+      },
+    ],
+    "typescript/prefer-nullish-coalescing": "error",
+    "typescript/prefer-promise-reject-errors": "error",
+    // Wants `readonly` on every object parameter, React props included.
+    "typescript/prefer-readonly-parameter-types": "off",
+    "typescript/require-await": "error",
+    "typescript/restrict-template-expressions": "error",
+    "typescript/switch-exhaustiveness-check": "error",
+
+    // Design system rule, in lint/ui.ts rather than react/forbid-elements: a list of banned
+    // elements is right only until src/components/ui grows a component nobody remembered to
+    // ban the element for. This one allows structure and rejects the rest, so a
+    // `bunx shadcn add textarea` needs no edit here, and a raw control fails on the day it is
+    // written whether or not its component exists yet. src/components/ui is in ignorePatterns
+    // above, so the primitives themselves are exempt.
+    "ui/no-raw-element": "error",
+
+    // Not reached by the categories above. The first is what makes `globals: false` in
+    // vitest.config.ts an error rather than a runtime surprise.
+    "vitest/no-identical-title": "error",
+    "vitest/prefer-importing-vitest-globals": "error",
   },
 });

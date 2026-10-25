@@ -47,6 +47,7 @@ const HOOK = /^use[A-Z]/u;
 
 const isJotai = function isJotai(source: Node | undefined): boolean {
   const value = nodeStringValue(source);
+
   return (
     value !== undefined && (value === "jotai" || value.startsWith("jotai/"))
   );
@@ -65,6 +66,7 @@ const collectImports = function collectImports(
   for (const specifier of node.specifiers ?? []) {
     const imported = specifier.imported?.name;
     const local = specifier.local?.name;
+
     if (
       specifier.type !== "ImportSpecifier" ||
       imported === undefined ||
@@ -72,6 +74,7 @@ const collectImports = function collectImports(
     ) {
       continue;
     }
+
     if (wanted.has(imported)) {
       into.set(local, imported);
     }
@@ -80,11 +83,13 @@ const collectImports = function collectImports(
 
 const calleeName = function calleeName(node: Node): string | undefined {
   const { callee } = node;
+
   return callee?.type === "Identifier" ? callee.name : undefined;
 };
 
 const ancestors = function ancestors(node: Node): Array<Node> {
   const chain: Array<Node> = [];
+
   for (
     let current = node.parent;
     current !== null && current !== undefined;
@@ -92,6 +97,7 @@ const ancestors = function ancestors(node: Node): Array<Node> {
   ) {
     chain.push(current);
   }
+
   return chain;
 };
 
@@ -102,9 +108,11 @@ const functionName = function functionName(node: Node): string | undefined {
   }
 
   const { parent } = node;
+
   if (parent?.type !== "VariableDeclarator") {
     return undefined;
   }
+
   return parent.id?.type === "Identifier" ? parent.id.name : undefined;
 };
 
@@ -122,27 +130,27 @@ const reportIfUnstable = function reportIfUnstable(
   for (const ancestor of ancestors(call)) {
     if (ancestor.type === "CallExpression") {
       const wrapper = calleeName(ancestor);
+
       if (wrapper !== undefined && MEMO_HOOKS.has(wrapper)) {
         return;
       }
     }
-    if (!FUNCTIONS.has(ancestor.type)) {
-      continue;
-    }
 
-    const owner = functionName(ancestor);
-    if (!isComponentOrHook(owner)) {
-      continue;
-    }
+    const owner = FUNCTIONS.has(ancestor.type)
+      ? functionName(ancestor)
+      : undefined;
 
-    context.report({
-      message:
-        `\`${factory}()\` runs on every render of ${owner ?? "this component"}, so each render ` +
-        "gets a different atom config and `useAtom` can loop. Move it to module scope, or " +
-        "memoize it with useMemo when it genuinely depends on props.",
-      node: call,
-    });
-    return;
+    if (isComponentOrHook(owner)) {
+      context.report({
+        message:
+          `\`${factory}()\` runs on every render of ${owner ?? "this component"}, so each render ` +
+          "gets a different atom config and `useAtom` can loop. Move it to module scope, or " +
+          "memoize it with useMemo when it genuinely depends on props.",
+        node: call,
+      });
+
+      return;
+    }
   }
 };
 
@@ -162,6 +170,7 @@ const noAtomInRender: Rule<Context> = {
       "Program:exit": () => {
         for (const call of calls) {
           const factory = factories.get(calleeName(call) ?? "");
+
           if (factory !== undefined) {
             reportIfUnstable(context, call, factory);
           }
@@ -186,11 +195,13 @@ const reportWideHook = function reportWideHook(
 ): void {
   const { id } = declarator;
   const { init } = declarator;
+
   if (id?.type !== "ArrayPattern" || init?.type !== "CallExpression") {
     return;
   }
 
   const name = calleeName(init);
+
   if (name === undefined || !locals.has(name)) {
     return;
   }
@@ -198,6 +209,7 @@ const reportWideHook = function reportWideHook(
   const elements = id.elements ?? [];
   const reads = elements[0] !== null && elements[0] !== undefined;
   const writes = elements[1] !== null && elements[1] !== undefined;
+
   if (reads && writes) {
     return;
   }
@@ -223,6 +235,7 @@ const preferNarrowHook: Rule<Context> = {
       },
       "Program:exit": () => {
         const locals = new Set(imports.keys());
+
         for (const declarator of declarators) {
           reportWideHook(context, declarator, locals);
         }
@@ -247,18 +260,22 @@ const reportBadName = function reportBadName(
 ): void {
   const { id } = declarator;
   const { init } = declarator;
+
   if (id?.type !== "Identifier" || init?.type !== "CallExpression") {
     return;
   }
+
   if (!factories.has(calleeName(init) ?? "")) {
     return;
   }
+
   // Inside a function the name is local, and no-atom-in-render already owns that case.
   if (ancestors(declarator).some((node) => FUNCTIONS.has(node.type))) {
     return;
   }
 
   const { name } = id;
+
   if (name === undefined || suffixes.some((suffix) => name.endsWith(suffix))) {
     return;
   }

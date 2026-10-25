@@ -25,9 +25,11 @@ describe("<RouteError />", () => {
   // away everything else on screen, which is why it is not what the button does.
   it("retries by invalidating the router", async () => {
     const user = userEvent.setup();
+
     const { router } = renderWithProviders(
       <RouteError error={new Error("offline")} />
     );
+
     const invalidate = vi.spyOn(router, "invalidate").mockResolvedValue();
 
     await user.click(screen.getByRole("button", { name: "Try again" }));

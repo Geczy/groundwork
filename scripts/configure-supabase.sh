@@ -134,9 +134,9 @@ EOF
 echo "Configured Supabase schema '$SCHEMA'."
 echo "Next: start/reset locally, or apply the bootstrap migration to the self-hosted database."
 
+# database-schema.generated.ts stays as written: gen-types.sh matches its single-quoted line.
 FORMATTER="$(cd "$(dirname "$0")/.." && pwd)/node_modules/.bin/oxfmt"
 if [[ -x "$FORMATTER" ]]; then
-  "$FORMATTER" -c "$(cd "$(dirname "$0")/.." && pwd)/.oxfmtrc.jsonc" \
-    "$ROOT/src/lib/supabase/database-schema.generated.ts" \
+  "$FORMATTER" -c "$(cd "$(dirname "$0")/.." && pwd)/oxfmt.config.ts" \
     "$ROOT/src/lib/supabase/database-generated.types.ts" >/dev/null
 fi

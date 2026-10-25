@@ -13,9 +13,9 @@ const only = function only(
   findings: Array<Finding>,
   rule: string
 ): Array<number> {
-  return findings
-    .filter((finding) => finding.rule === rule)
-    .map((finding) => finding.line);
+  return findings.flatMap((finding) =>
+    finding.rule === rule ? [finding.line] : []
+  );
 };
 
 const RAW = "ui(no-raw-element)";
